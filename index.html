@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="es-BO">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Chicken's Kingdom · Con la pechuga en alto · Cochabamba y Santa Cruz</title>
+  <meta name="description" content="Pollo frito y pipocas de pollo desde el 2000. 14 sucursales en Cochabamba y Santa Cruz, de 10:00 a 23:30. Combo Queen Bs 43, Combo King Bs 70 y los miércoles Combo Yape a Bs 20. Pide por WhatsApp.">
+  <meta name="theme-color" content="#e4650a">
+  <link rel="canonical" href="https://chickens-kingdom.vercel.app/">
+  <link rel="icon" href="favicon.ico" sizes="48x48">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/brand/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_BO">
+  <meta property="og:site_name" content="Chicken's Kingdom">
+  <meta property="og:title" content="Chicken's Kingdom · Con la pechuga en alto">
+  <meta property="og:description" content="Sabor y originalidad nos hacen diferentes. Pollo frito y pipocas desde el 2000 en Cochabamba y Santa Cruz.">
+  <meta property="og:url" content="https://chickens-kingdom.vercel.app/">
+  <meta property="og:image" content="https://chickens-kingdom.vercel.app/assets/brand/chickens-kingdom-logo-share.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="1200">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Chicken's Kingdom · Con la pechuga en alto">
+  <meta name="twitter:description" content="Pollo frito y pipocas desde el 2000 en Cochabamba y Santa Cruz.">
+  <meta name="twitter:image" content="https://chickens-kingdom.vercel.app/assets/brand/chickens-kingdom-logo-share.jpg">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    "name": "Chicken's Kingdom",
+    "slogan": "Sabor y originalidad nos hacen diferentes",
+    "servesCuisine": ["Pollo frito", "Comida rápida"],
+    "foundingDate": "2000-09-14",
+    "priceRange": "Bs 1,5 – Bs 70",
+    "image": "https://chickens-kingdom.vercel.app/assets/brand/chickens-kingdom-logo-share.jpg",
+    "address": { "@type": "PostalAddress", "addressLocality": "Cochabamba", "addressCountry": "BO" },
+    "areaServed": ["Cochabamba", "Santa Cruz de la Sierra"],
+    "openingHours": "Mo-Su 10:00-23:30",
+    "sameAs": [
+      "https://www.instagram.com/chickens.kingdom.bolivia/",
+      "https://www.facebook.com/Chickens.Kingdom.OFFICIAL",
+      "https://www.chickenskingdom.com/"
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="assets/hero/pipocas.webp">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Saltar al contenido</a>
+
+  <header class="nav" id="nav">
+    <div class="wrap nav__in">
+      <a class="nav__brand" href="#top" aria-label="Chicken's Kingdom, inicio">
+        <img src="assets/img/logo.png" alt="" width="44" height="44">
+        <span>Chicken's Kingdom</span>
+      </a>
+      <nav class="nav__links" id="navLinks" aria-label="Principal">
+        <a href="#menu">Menú</a>
+        <a href="#promos">Promos</a>
+        <a href="#pedir">Pedir</a>
+        <a href="#sucursales">Sucursales</a>
+        <a href="#historia">Historia</a>
+        <button class="nav__ai" type="button" data-pollitia-open>✨ Pollit-IA</button>
+      </nav>
+      <button class="btn btn--cream nav__cart" type="button" id="cartBtn" aria-label="Ver mi pedido">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+        <span>Pedir</span>
+        <b class="nav__count" id="cartCount" aria-live="polite">0</b>
+      </button>
+      <button class="nav__burger" type="button" id="burger" aria-label="Abrir menú" aria-expanded="false" aria-controls="navLinks"><span></span><span></span></button>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- HERO -->
+    <section class="hero" id="top">
+      <div class="hero__grain" aria-hidden="true"></div>
+      <div class="hero__glow" aria-hidden="true"></div>
+      <div class="wrap hero__in">
+        <p class="live" id="livePill"><i class="live__dot"></i><span id="liveText">Cargando sucursales…</span></p>
+        <h1 class="hero__title">
+          <span class="mask"><span class="rise">Con la pechuga</span></span>
+          <span class="mask"><span class="rise rise--2 hl">en alto.</span></span>
+        </h1>
+        <div class="hero__grid">
+          <div class="hero__left">
+            <p class="hero__lede">Pollo frito crocante con nuestra receta secreta, pipocas de pollo y tu llajua de siempre. Desde el 2000 en Cochabamba y Santa Cruz.</p>
+            <div class="hero__ctas">
+              <a class="btn btn--mustard btn--lg" href="#pedir" data-intent="delivery">Pedir por WhatsApp →</a>
+              <a class="btn btn--ghost btn--lg" href="#menu">Ver el menú</a>
+            </div>
+          </div>
+          <div class="fan" id="fan">
+            <figure class="fan__card fan__card--l">
+              <video muted playsinline loop preload="metadata" poster="assets/hero/pollo.webp" data-autoplay><source src="assets/hero/pollo.mp4" type="video/mp4"></video>
+              <figcaption class="chip"><b>Combo Queen</b> Bs 43</figcaption>
+            </figure>
+            <figure class="fan__card fan__card--r">
+              <video muted playsinline loop preload="metadata" poster="assets/hero/mesa.webp" data-autoplay><source src="assets/hero/mesa.mp4" type="video/mp4"></video>
+              <figcaption class="chip"><b>En mesa</b> 🔥</figcaption>
+            </figure>
+            <figure class="fan__card fan__card--c">
+              <video muted playsinline loop preload="auto" poster="assets/hero/pipocas.webp" data-autoplay><source src="assets/hero/pipocas.mp4" type="video/mp4"></video>
+              <figcaption class="chip"><b>Pipocas</b> Bs 37</figcaption>
+            </figure>
+            <div class="sticker" aria-hidden="true">
+              <svg viewBox="0 0 200 200">
+                <defs><path id="circ" d="M100,100 m-74,0 a74,74 0 1,1 148,0 a74,74 0 1,1 -148,0"/></defs>
+                <text><textPath href="#circ" textLength="462" lengthAdjust="spacingAndGlyphs">DESDE EL 2000 · 26 AÑOS DE SABOR · KINGDOM ·</textPath></text>
+              </svg>
+              <b>26</b>
+            </div>
+          </div>
+          <ul class="stats" id="stats"></ul>
+        </div>
+      </div>
+      <div class="motif motif--bottom" aria-hidden="true"></div>
+    </section>
+
+    <div class="marquee" aria-hidden="true"><div class="marquee__track" id="marquee"></div></div>
+
+    <!-- WEEKLY -->
+    <section class="sec sec--cream" id="promos">
+      <div class="wrap">
+        <div class="head reveal">
+          <p class="eyebrow">Promos de la semana</p>
+          <h2 class="display">Miércoles de <span class="hl">antojo.</span></h2>
+          <p class="sub">El Combo Yape a Bs 20 llega cada miércoles a tu sucursal. Y el resto de la semana, los clásicos a precio de carta.</p>
+        </div>
+        <div class="weekly" id="weekly"></div>
+        <p class="fine" id="promoRules"></p>
+      </div>
+    </section>
+
+    <!-- SPOTLIGHT -->
+    <section class="spot" id="spot" aria-labelledby="spotTitle"></section>
+
+    <!-- MENU -->
+    <section class="sec sec--cream" id="menu">
+      <div class="wrap">
+        <div class="head head--row reveal">
+          <div>
+            <p class="eyebrow">Nuestro menú</p>
+            <h2 class="display">Crocante por fuera, <span class="hl">jugoso por dentro.</span></h2>
+          </div>
+          <ul class="coins" id="coins"></ul>
+        </div>
+        <div class="tabs" role="tablist" id="tabs" aria-label="Categorías"></div>
+        <div class="menu-list" id="menuList" role="tabpanel"></div>
+        <button class="btn btn--red more" type="button" id="menuMore" hidden></button>
+        <div class="addons" id="addons"></div>
+      </div>
+    </section>
+
+    <!-- COMBOS -->
+    <section class="sec sec--wine" id="combos">
+      <div class="wrap">
+        <div class="head reveal">
+          <p class="eyebrow">Combos</p>
+          <h2 class="display">Tu bandeja, <span class="hl">completita.</span></h2>
+          <p class="sub">Presas, porción, refresco, salsa y llajua. Todo en una sola bandeja naranja.</p>
+        </div>
+        <div class="combos" id="combosGrid"></div>
+        <div class="featured" id="featured"></div>
+        <p class="fine fine--light">Precios en bolivianos según la carta oficial de chickenskingdom.com. Combo Yape solo los miércoles, en sucursal y pagando con Yape.</p>
+      </div>
+    </section>
+
+    <!-- REELS -->
+    <section class="sec sec--red reels" id="reels">
+      <div class="wrap head head--row">
+        <div class="reveal">
+          <p class="eyebrow">En Instagram</p>
+          <h2 class="display">Así se vive <span class="hl">el Kingdom.</span></h2>
+        </div>
+        <div class="rail-ctrl">
+          <button class="icon-btn" type="button" id="railPrev" aria-label="Reels anteriores">←</button>
+          <button class="icon-btn" type="button" id="railNext" aria-label="Reels siguientes">→</button>
+        </div>
+      </div>
+      <div class="rail" id="rail" tabindex="0" aria-label="Reels de Chicken's Kingdom"></div>
+    </section>
+
+    <!-- FUNNEL -->
+    <section class="sec sec--wine funnel" id="pedir">
+      <div class="wrap">
+        <div class="head reveal">
+          <p class="eyebrow">Pedido por WhatsApp</p>
+          <h2 class="display">Pide en <span class="hl">4 pasos.</span></h2>
+          <p class="sub">Arma tu pedido aquí y lo mandamos listo por WhatsApp a Chicken's Kingdom, con tu sucursal elegida.</p>
+        </div>
+        <div class="funnel__grid">
+          <form class="fform" id="fform" novalidate>
+            <ol class="steps" id="steps">
+              <li><button type="button" data-step="1" class="is-on">01 · Qué necesitas</button></li>
+              <li><button type="button" data-step="2">02 · Detalles</button></li>
+              <li><button type="button" data-step="3">03 · Tus datos</button></li>
+              <li><button type="button" data-step="4">04 · Enviar</button></li>
+            </ol>
+
+            <fieldset class="fstep is-on" data-panel="1">
+              <legend class="sr">Qué necesitas</legend>
+              <div class="intents" id="intents"></div>
+            </fieldset>
+
+            <fieldset class="fstep" data-panel="2">
+              <legend class="sr">Detalles</legend>
+              <div data-for="order">
+                <div class="fcart" id="fcart"></div>
+                <div class="picker">
+                  <div class="tabs tabs--sm" id="pickTabs" role="tablist" aria-label="Agregar del menú"></div>
+                  <div class="pick-list" id="pickList"></div>
+                </div>
+              </div>
+              <div data-for="event" hidden>
+                <div class="row3">
+                  <label>Fecha<input type="date" id="evDate"></label>
+                  <label>Hora<input type="time" id="evTime"></label>
+                  <label>Personas<input type="number" id="evPeople" min="1" max="500" inputmode="numeric" placeholder="10"></label>
+                </div>
+                <p class="flabel">Ocasión</p>
+                <div class="chips" id="evChips"></div>
+                <label>Nota<textarea id="evNote" rows="3" placeholder="Cuéntanos qué tienes en mente"></textarea></label>
+              </div>
+              <div data-for="question" hidden>
+                <p class="flabel">Tema</p>
+                <div class="chips" id="qChips"></div>
+                <label>Tu consulta<textarea id="qText" rows="4" placeholder="Escribe tu pregunta"></textarea></label>
+                <button type="button" class="linkish" data-pollitia-open>¿Quieres respuesta al toque? Pregúntale a Pollit-IA ✨</button>
+              </div>
+            </fieldset>
+
+            <fieldset class="fstep" data-panel="3">
+              <legend class="sr">Tus datos</legend>
+              <label>Tu nombre<input type="text" id="fName" autocomplete="name" placeholder="¿Cómo te llamas?"></label>
+              <label>Sucursal<select id="fBranch"></select></label>
+              <div data-for-delivery>
+                <label>Dirección<input type="text" id="fAddr" autocomplete="street-address" placeholder="Calle, número, zona"></label>
+                <label>Referencia<input type="text" id="fRef" placeholder="Casa naranja, frente a la plaza…"></label>
+              </div>
+              <p class="flabel">¿Cuándo?</p>
+              <div class="chips" id="whenChips"></div>
+              <label id="whenTimeWrap" hidden>Hora<input type="time" id="whenTime"></label>
+              <label>Nota (opcional)<input type="text" id="fNote" placeholder="Sin llajua, extra salsa…"></label>
+            </fieldset>
+
+            <fieldset class="fstep" data-panel="4">
+              <legend class="sr">Enviar</legend>
+              <div class="summary" id="summary"></div>
+              <a class="btn btn--whatsapp btn--lg btn--block" id="sendWa" href="#" target="_blank" rel="noopener">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.8-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.7a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z"/></svg>
+                Enviar por WhatsApp
+              </a>
+            </fieldset>
+
+            <p class="fmsg" id="fmsg" aria-live="polite"></p>
+            <div class="fnav">
+              <button type="button" class="btn btn--ghost" id="fBack">← Atrás</button>
+              <button type="button" class="btn btn--mustard" id="fNext">Siguiente →</button>
+            </div>
+          </form>
+
+          <div class="phone" aria-label="Vista previa del mensaje de WhatsApp">
+            <div class="phone__notch"></div>
+            <div class="phone__head">
+              <img src="assets/img/logo.png" alt="" width="38" height="38">
+              <div><b>Chicken's Kingdom</b><small id="phoneTo">+591 70343229</small></div>
+            </div>
+            <div class="phone__chat" id="phoneChat">
+              <div class="bub bub--in">¡Hola! 🍗 Bienvenido a Chicken's Kingdom. ¿Qué se te antoja hoy?<time>10:00</time></div>
+              <div class="bub bub--out" id="phoneOut">Tu mensaje aparecerá aquí mientras llenas el formulario ✍️<time id="phoneTime">--:--</time></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BRANCHES -->
+    <section class="sec sec--cream" id="sucursales">
+      <div class="wrap">
+        <div class="head head--row reveal">
+          <div>
+            <p class="eyebrow">Sucursales</p>
+            <h2 class="display">14 reinos, <span class="hl">un solo sabor.</span></h2>
+          </div>
+          <p class="clock" id="clock"></p>
+        </div>
+        <div class="city-tabs" id="cityTabs" role="tablist" aria-label="Ciudad"></div>
+        <div class="branches" id="branches"></div>
+        <div class="delivery reveal" id="delivery"></div>
+      </div>
+    </section>
+
+    <!-- DESSERT -->
+    <section class="sec sec--pink dessert" id="helados"></section>
+
+    <!-- STORY -->
+    <section class="sec sec--wine story" id="historia"></section>
+
+    <!-- FEED -->
+    <section class="sec sec--cream" id="feed">
+      <div class="wrap">
+        <div class="head head--row reveal">
+          <div>
+            <p class="eyebrow">@chickens.kingdom.bolivia</p>
+            <h2 class="display">Síguenos <span class="hl">el rastro.</span></h2>
+          </div>
+          <a class="btn btn--red" href="https://www.instagram.com/chickens.kingdom.bolivia/" target="_blank" rel="noopener">Síguenos en Instagram ↗</a>
+        </div>
+        <div class="feed" id="feedGrid"></div>
+      </div>
+    </section>
+
+    <!-- JOBS -->
+    <section class="jobs" id="trabaja"></section>
+  </main>
+
+  <footer class="foot" id="foot">
+    <div class="motif motif--top" aria-hidden="true"></div>
+    <div class="wrap foot__in">
+      <div class="foot__brand">
+        <img src="assets/img/logo.png" alt="Chicken's Kingdom" width="120" height="120" loading="lazy">
+        <p class="foot__big">¡Nos vemos en el Kingdom!</p>
+      </div>
+      <div>
+        <h3>Visítanos</h3>
+        <p>Todos los días<br>10:00 a 23:30</p>
+        <p>10 sucursales en Cochabamba<br>4 sucursales en Santa Cruz</p>
+        <p>Call Center<br><a href="tel:4200780">Cbba 4200780</a> · <a href="tel:3336171">Scz 3336171</a></p>
+      </div>
+      <div>
+        <h3>Síguenos</h3>
+        <ul class="foot__links">
+          <li><a href="https://www.instagram.com/chickens.kingdom.bolivia/" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://www.facebook.com/Chickens.Kingdom.OFFICIAL" target="_blank" rel="noopener">Facebook</a></li>
+          <li><a href="https://www.chickenskingdom.com/" target="_blank" rel="noopener">chickenskingdom.com</a></li>
+          <li><a href="#menu">Menú</a> · <a href="#sucursales">Sucursales</a> · <a href="#pedir">Pedir</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="wrap foot__base">
+      <p>© <span id="year">2026</span> Chicken's Kingdom S.R.L. · Bolivia</p>
+      <p>Hecho con hambre en Cochabamba y Santa Cruz · #ConLaPechugaEnAlto</p>
+    </div>
+  </footer>
+
+  <!-- CART -->
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle" hidden>
+    <div class="drawer__head">
+      <h2 id="drawerTitle">Tu pedido</h2>
+      <button class="icon-btn icon-btn--dark" type="button" id="drawerClose" aria-label="Cerrar pedido">✕</button>
+    </div>
+    <div class="drawer__body" id="drawerBody"></div>
+    <div class="drawer__foot">
+      <p class="drawer__total">Total <b id="drawerTotal">Bs 0</b></p>
+      <button class="btn btn--red btn--lg btn--block" type="button" id="drawerGo">Continuar pedido →</button>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- AI CHAT -->
+  <button class="ai-fab" type="button" data-pollitia-open aria-label="Abrir Pollit-IA, recepcionista virtual">
+    <img src="assets/img/logo.png" alt="" width="40" height="40">
+    <span><b>Pollit-IA</b><small><i></i> ¿Te ayudo?</small></span>
+  </button>
+  <section class="chat" id="chat" role="dialog" aria-modal="false" aria-labelledby="chatTitle" hidden>
+    <header class="chat__head">
+      <img src="assets/img/logo.png" alt="" width="40" height="40">
+      <div><h2 id="chatTitle">Pollit-IA</h2><small><i></i> Recepcionista virtual de Chicken's Kingdom</small></div>
+      <button class="icon-btn" type="button" id="chatClose" aria-label="Cerrar chat">✕</button>
+    </header>
+    <div class="chat__log" id="chatLog" aria-live="polite"></div>
+    <div class="chat__sugs" id="chatSugs"></div>
+    <form class="chat__form" id="chatForm">
+      <label class="sr" for="chatInput">Escribe tu pregunta</label>
+      <input id="chatInput" type="text" autocomplete="off" maxlength="1200" placeholder="Pregúntame sobre el menú, promos, sucursales…">
+      <button class="chat__send" type="submit" aria-label="Enviar">↑</button>
+    </form>
+    <p class="chat__disc">Pollit-IA es una IA y puede equivocarse. Confirma tu pedido por WhatsApp.</p>
+  </section>
+
+  <!-- MOBILE BAR -->
+  <div class="mbar" id="mbar">
+    <button class="mbar__ai" type="button" data-pollitia-open aria-label="Abrir Pollit-IA"><img src="assets/img/logo.png" alt="" width="34" height="34"></button>
+    <button class="mbar__cart" type="button" id="mbarCart" hidden><b id="mbarCount">0</b><span id="mbarTotal">Bs 0</span></button>
+    <a class="btn btn--mustard mbar__cta" href="#pedir" data-intent="delivery">Pedir por WhatsApp →</a>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

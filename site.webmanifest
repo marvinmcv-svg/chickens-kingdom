@@ -1,0 +1,14 @@
+{
+  "name": "Chicken's Kingdom",
+  "short_name": "Kingdom",
+  "description": "Pollo frito y pipocas de pollo desde el 2000 en Cochabamba y Santa Cruz.",
+  "lang": "es-BO",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff4d6",
+  "theme_color": "#e4650a",
+  "icons": [
+    { "src": "assets/brand/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/brand/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

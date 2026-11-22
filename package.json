@@ -1,0 +1,12 @@
+{
+  "name": "chickens-kingdom",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chicken's Kingdom Bolivia: marketing + WhatsApp ordering site with the Pollit-IA receptionist",
+  "engines": { "node": ">=20" },
+  "scripts": { "dev": "vercel dev" },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.12.0",
+    "openai": "^7.62.0"
+  }
+}
