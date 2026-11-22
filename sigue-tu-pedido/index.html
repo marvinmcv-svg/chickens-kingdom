@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="es-BO">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sigue tu pedido · Chicken's Kingdom</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#e4650a">
+  <link rel="icon" href="../favicon.ico" sizes="48x48">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+  <style>
+    :root { --red: #e4650a; --red-600: #c9550a; --red-deep: #c8141f; --wine: #1d1512; --cream: #fff4d6; --cream-2: #f3e3b3; --card: #fffaea;
+      --mustard: #ffcf1a; --ink: #2a1d17; --wa: #25d366; --ease: cubic-bezier(.2,.8,.2,1);
+      --font-display: "Lilita One", "Arial Rounded MT Bold", system-ui, sans-serif; --font-body: "DM Sans", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: var(--cream); color: var(--ink); font: 400 16px/1.55 var(--font-body); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; }
+    :focus-visible { outline: 3px solid var(--mustard); outline-offset: 3px; }
+    .top { position: relative; background: radial-gradient(60% 70% at 80% 30%, rgba(255,170,60,.45), transparent 70%), radial-gradient(60% 60% at 0% 0%, rgba(200,20,31,.6), transparent 70%), var(--red); color: var(--cream); padding: 22px 20px 92px; text-align: center; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font: 400 1.3rem/1 var(--font-display); }
+    .brand img { width: 42px; height: 42px; border-radius: 12px; background: var(--cream); padding: 2px; object-fit: contain; }
+    h1 { margin: 26px 0 8px; font: 400 clamp(2.4rem, 8vw, 4rem)/.95 var(--font-display); text-shadow: 0 .06em 0 var(--red-deep); text-wrap: balance; }
+    .sub { margin: 0 auto; max-width: 40ch; font-size: 1.05rem; opacity: .92; }
+    .motif { position: absolute; left: 0; right: 0; bottom: 0; height: 18px; background: conic-gradient(from 135deg at 50% 0, var(--mustard) 90deg, var(--red-deep) 0) 0 0 / 36px 18px repeat-x; }
+    .card { position: relative; max-width: 560px; margin: -64px auto 40px; padding: 24px; border-radius: 24px; background: #fff; box-shadow: 0 30px 60px -24px rgba(29,21,18,.45); }
+    .head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .code { font: 400 1.6rem/1 var(--font-display); }
+    .code small { font: 700 .8rem var(--font-body); opacity: .6; margin-left: 6px; }
+    .pill { padding: 6px 12px; border-radius: 999px; background: var(--cream-2); font-size: .8rem; font-weight: 700; }
+    ol.steps { list-style: none; margin: 22px 0; padding: 0; }
+    .step { position: relative; display: flex; gap: 14px; padding: 0 0 18px; }
+    .step:last-child { padding-bottom: 0; }
+    .step::before { content: ""; position: absolute; left: 13px; top: 28px; bottom: 0; width: 2px; background: var(--cream-2); }
+    .step:last-child::before { display: none; }
+    .dot { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--cream-2); color: #fff; font-size: .8rem; font-weight: 700; z-index: 1; }
+    .step.done .dot { background: var(--red); }
+    .step.done::before { background: var(--red); }
+    .step.now .dot { background: var(--mustard); color: var(--ink); box-shadow: 0 0 0 0 rgba(255,207,26,.7); animation: pulse 1.6s infinite; }
+    .step b { display: block; }
+    .step time { font-size: .82rem; opacity: .65; }
+    .step.todo { opacity: .5; }
+    .cancel { margin: 18px 0; padding: 14px; border-radius: 14px; background: #ffe1e1; color: #8a1118; font-weight: 700; }
+    .eta { margin: 0 0 16px; padding: 12px 14px; border-radius: 14px; background: var(--card); border: 2px solid var(--cream-2); font-weight: 500; }
+    ul.items { list-style: none; margin: 0; padding: 0; border-top: 2px dotted rgba(42,29,23,.2); }
+    ul.items li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed rgba(42,29,23,.15); }
+    .total { display: flex; justify-content: space-between; margin: 12px 0 20px; font: 400 1.5rem/1 var(--font-display); color: var(--red); }
+    .btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 18px; border-radius: 999px; background: var(--wa); color: #08321a; font-weight: 700; text-decoration: none; }
+    .btn--ghost { background: transparent; color: var(--red-600); box-shadow: inset 0 0 0 2px var(--red-600); margin-top: 10px; }
+    .muted { font-size: .82rem; opacity: .6; text-align: center; margin: 14px 0 0; }
+    .empty { text-align: center; }
+    .empty p { margin: 0 0 18px; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,207,26,.7); } 70% { box-shadow: 0 0 0 10px rgba(255,207,26,0); } 100% { box-shadow: 0 0 0 0 rgba(255,207,26,0); } }
+    @media (prefers-reduced-motion: reduce) { .step.now .dot { animation: none; } }
+    @media (max-width: 600px) { .card { margin: -64px 14px 30px; padding: 20px; } }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="../"><img src="../assets/img/logo.png" alt="" width="42" height="42">Chicken's Kingdom</a>
+    <h1 id="title">Sigue tu pedido</h1>
+    <p class="sub" id="subtitle">Buscando tu pedido…</p>
+    <div class="motif" aria-hidden="true"></div>
+  </header>
+
+  <main class="card" id="card" aria-live="polite">
+    <div id="view" hidden>
+      <div class="head"><span class="code" id="code"></span><span class="pill" id="service"></span></div>
+      <div class="cancel" id="cancel" hidden></div>
+      <ol class="steps" id="steps"></ol>
+      <p class="eta" id="eta" hidden></p>
+      <ul class="items" id="items"></ul>
+      <p class="total"><span>Total</span><span id="total"></span></p>
+      <a class="btn" id="wa" href="#" target="_blank" rel="noopener">Consultar por WhatsApp</a>
+      <a class="btn btn--ghost" href="../">Volver a la página</a>
+      <p class="muted" id="updated"></p>
+    </div>
+    <div class="empty" id="empty" hidden>
+      <p>No pudimos encontrar ese pedido 😔. Revisa el enlace o escríbenos por WhatsApp.</p>
+      <a class="btn" href="https://wa.me/59170343229" target="_blank" rel="noopener">Escribir por WhatsApp</a>
+      <a class="btn btn--ghost" href="../">Volver a la página</a>
+    </div>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    var CFG = window.KINGDOM_CONFIG || {};
+    var $ = function (s) { return document.querySelector(s); };
+    var esc = function (v) { return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+    var money = function (n) { n = Number(n) || 0; return "Bs " + (Number.isInteger(n) ? n : n.toFixed(2).replace(".", ",")); };
+    var hhmm = function (iso) { return new Intl.DateTimeFormat("es-BO", { timeZone: "America/La_Paz", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(iso)); };
+    var token = new URLSearchParams(location.search).get("t") || "";
+    var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    var LABEL = { "new": "Recibimos tu pedido", confirmed: "Confirmado", preparing: "En preparación", frying: "En la freidora 🔥", ready: "¡Listo!", out_for_delivery: "En camino 🛵", delivered: "Entregado", cancelled: "Cancelado" };
+    var HEAD = {
+      "new": ["¡Recibimos tu pedido!", "La sucursal lo confirmará en un momentito."],
+      confirmed: ["¡Pedido confirmado!", "Ya estamos preparando todo."],
+      preparing: ["Preparando tu bandeja", "Porciones, salsas y llajua en camino a la bandeja."],
+      frying: ["En la freidora 🔥", "Tu pollo se está poniendo crocante."],
+      ready: ["¡Tu pedido está listo!", "Ya puedes pasar por él."],
+      out_for_delivery: ["¡Va en camino! 🛵", "Tu pedido ya salió de la sucursal."],
+      delivered: ["¡Buen provecho! 🍗", "Gracias por elegir Chicken's Kingdom. #ConLaPechugaEnAlto"],
+      cancelled: ["Pedido cancelado", "Si tienes dudas, escríbenos por WhatsApp."]
+    };
+    var timer = null;
+    function notFound() {
+      $("#view").hidden = true; $("#empty").hidden = false;
+      $("#title").textContent = "Sigue tu pedido"; $("#subtitle").textContent = "No encontramos ese pedido.";
+    }
+    function render(d) {
+      $("#empty").hidden = true; $("#view").hidden = false;
+      var head = HEAD[d.status] || HEAD["new"];
+      $("#title").textContent = d.status === "ready" && d.service === "delivery" ? "¡Listo para salir!" : head[0];
+      $("#subtitle").textContent = (d.first_name ? d.first_name + ", " : "") + head[1].charAt(0).toLowerCase() + head[1].slice(1);
+      $("#code").innerHTML = esc(d.code) + (d.order_no ? "<small>#" + esc(d.order_no) + " del día</small>" : "");
+      $("#service").textContent = d.service === "delivery" ? "🛵 Delivery" : d.service === "dine_in" ? "🍽️ En mesa" : "🏪 Para recoger";
+      var flow = d.service === "delivery" ? ["new", "confirmed", "preparing", "frying", "ready", "out_for_delivery", "delivered"] : ["new", "confirmed", "preparing", "frying", "ready", "delivered"];
+      var at = {}; (d.events || []).forEach(function (e) { at[e.status] = e.at; });
+      var curIdx = flow.indexOf(d.status);
+      var cancelled = d.status === "cancelled";
+      $("#cancel").hidden = !cancelled;
+      if (cancelled) $("#cancel").textContent = "Este pedido fue cancelado" + (d.cancel_reason ? ": " + d.cancel_reason : "") + ".";
+      $("#steps").innerHTML = flow.map(function (s, i) {
+        var label = s === "delivered" && d.service !== "delivery" ? "Entregado / recogido" : LABEL[s];
+        var cls = cancelled ? (at[s] ? "done" : "todo") : i < curIdx ? "done" : i === curIdx ? "now" : "todo";
+        if (cancelled && !at[s]) return "";
+        return '<li class="step ' + cls + '"><span class="dot">' + (cls === "done" ? "✓" : i + 1) + "</span><div><b>" + esc(label) + "</b>" + (at[s] ? "<time>" + hhmm(at[s]) + "</time>" : "") + "</div></li>";
+      }).join("");
+      var eta = $("#eta");
+      if (!cancelled && curIdx >= 0 && curIdx < flow.indexOf("ready") && d.store && d.store.prep_minutes) {
+        var base = d.scheduled_for ? new Date(d.scheduled_for) : new Date(new Date(at.confirmed || d.created_at).getTime() + d.store.prep_minutes * 60000);
+        eta.hidden = false; eta.textContent = "⏱️ Listo aproximadamente a las " + hhmm(base) + " (" + d.store.name + ")";
+      } else eta.hidden = true;
+      $("#items").innerHTML = (d.items || []).map(function (i) { return "<li><span>" + esc(i.qty) + " × " + esc(i.name) + "</span></li>"; }).join("");
+      $("#total").textContent = money(d.total) + (Number(d.delivery_fee) ? " (incluye envío)" : "");
+      var num = (d.store && d.store.whatsapp) || "59170343229";
+      $("#wa").href = "https://wa.me/" + encodeURIComponent(num) + "?text=" + encodeURIComponent("Hola, consulto por mi pedido " + d.code + " 🍗");
+      $("#wa").textContent = "Consultar por WhatsApp · " + ((d.store && d.store.name) || "Chicken's Kingdom");
+      $("#updated").textContent = "Actualizado a las " + hhmm(new Date().toISOString()) + " · se actualiza solo";
+      if (d.status === "delivered" || cancelled) { clearInterval(timer); timer = null; }
+    }
+    function load() {
+      if (!UUID.test(token) || !CFG.supabaseUrl || !CFG.publishableKey) { notFound(); return; }
+      fetch(CFG.supabaseUrl.replace(/\/$/, "") + "/rest/v1/rpc/track_order", {
+        method: "POST", headers: { apikey: CFG.publishableKey, Authorization: "Bearer " + CFG.publishableKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ token: token })
+      }).then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { if (d && d.code) render(d); else notFound(); })
+        .catch(function () { if ($("#view").hidden) notFound(); });
+    }
+    load();
+    timer = setInterval(function () { if (!document.hidden) load(); }, 15000);
+  })();
+  </script>
+</body>
+</html>

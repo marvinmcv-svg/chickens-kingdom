@@ -25,6 +25,9 @@
 
     config: {
       whatsapp: "59170343229", // [WEB] footer "wa.me/+59170343229"
+      callCenter: "59170343229", // official WhatsApp, used for general questions and the QR
+      phonePrefix: "591",
+      phoneDigits: 8, // Bolivian mobiles: 8 digits starting with 6 or 7
       callCenters: [
         { city: "Cochabamba", phone: "4200780" }, // [IG] bio "Cbba: 4200780", [WEB] tel:4200780
         { city: "Santa Cruz", phone: "3336171" }, // [IG] bio "Scz: 3336171", [WEB] tel:3336171
@@ -138,10 +141,10 @@
     weekly: [
       { id: "yape-pollo", day: 3, name: "Miércoles", title: "Combo Yape · Pollo", price: 20, until: "2026-12-30", inStoreOnly: true,
         desc: "2 presas (pierna y entrepierna) + 1 guarnición a elección: papas fritas, arroz simple o arroz con frijol.",
-        tag: "Pagando con Yape" }, // [IG] https://www.instagram.com/p/Df4xs1-M2Xx/ (caption + "COMBO yape 20 Bs" on image)
+        tag: "Pagando con Yape", cats: ["pollo"], img: "assets/img/miercoles-yape.webp" }, // [IG] https://www.instagram.com/p/Df4xs1-M2Xx/ (caption + "COMBO yape 20 Bs" on image)
       { id: "yape-pipocas", day: 3, name: "Miércoles", title: "Combo Yape · Pipocas", price: 20, until: "2026-12-30", inStoreOnly: true,
         desc: "Pipocas de pollo + 1 guarnición a elección: papas fritas, arroz simple o arroz con frijol.",
-        tag: "Pagando con Yape" }, // [IG] https://www.instagram.com/p/Df4xs1-M2Xx/
+        tag: "Pagando con Yape", cats: ["pipocas"], img: "assets/img/miercoles-yape.webp" }, // [IG] https://www.instagram.com/p/Df4xs1-M2Xx/
       { id: "solo-cuarto", day: null, name: "Todos los días", title: "Solo Cuarto", price: 29,
         desc: "2 presas de pollo con su salsa y su vasito de llajua.", tag: "Precio de carta", ref: true }, // [MENU]
       { id: "solo-pipocas", day: null, name: "Todos los días", title: "Solo Pipocas", price: 29,
@@ -161,11 +164,24 @@
       until: "2026-12-30",
     },
 
+    // parts: slots of acceptable ids, used by the deal optimiser. The combo's "vaso de refresco (jugo o soda)"
+    // is compared with a medium juice (Bs 7), the closest drink with a published price.
     combos: [
-      { id: "combo-queen", star: false, hot: true },
-      { id: "combo-king", star: true },
-      { id: "combo-pipocas" },
+      { id: "combo-queen", star: false, hot: true, parts: [["cuarto-pollo"], ["jugo-mango-m", "jugo-maracuya-m", "jugo-frutilla-m"]] },
+      { id: "combo-king", star: true, parts: [["medio-pollo"], ["jugo-mango-m", "jugo-maracuya-m", "jugo-frutilla-m"]] },
+      { id: "combo-pipocas", parts: [["pipocas-de-pollo"], ["jugo-mango-m", "jugo-maracuya-m", "jugo-frutilla-m"]] },
       { id: "medio-pollo" },
+    ],
+    drinkIds: ["jugo-mango-m", "jugo-mango-g", "jugo-maracuya-m", "jugo-maracuya-g", "jugo-frutilla-m", "jugo-frutilla-g"],
+
+    // "Descubre nuestras promos" row: the current promo post + the official menu cards (current prices)
+    offers: [
+      { img: "assets/img/miercoles-yape.webp", href: "https://www.instagram.com/p/Df4xs1-M2Xx/", alt: "Miércoles: Combo Yape a 20 Bs, ¿pollo o pipocas?", w: 900, h: 1125 },
+      { img: "assets/img/card-combo-queen.webp", href: "#combos", alt: "Combo Queen Bs 43: 2 presas, porción, refresco, salsa y llajua", w: 700, h: 600 },
+      { img: "assets/img/card-combo-king.webp", href: "#combos", alt: "Combo King Bs 70: 4 presas, porción, refresco, 2 salsas y llajua", w: 700, h: 600 },
+      { img: "assets/img/card-combo-pipocas.webp", href: "#combos", alt: "Combo Pipocas Bs 43: 250 gr de pipocas, porción y refresco", w: 700, h: 600 },
+      { img: "assets/img/card-pipocas-de-pollo.webp", href: "#menu", alt: "Pipocas de Pollo Bs 37: 250 gr de pipocas y porción", w: 700, h: 600 },
+      { img: "assets/img/card-medio-pollo.webp", href: "#menu", alt: "Medio Pollo Bs 64: 4 presas y porción", w: 700, h: 600 },
     ],
 
     featured: [
@@ -283,6 +299,22 @@
       { img: "assets/video/familia.webp", url: "https://www.instagram.com/p/DYz2h0ltMCT/", alt: "Madres e hijas del equipo Kingdom" },
       { img: "assets/img/comunicado-gracias.webp", url: "https://www.instagram.com/p/DBtdvCrOnQW/", alt: "Comunicado: gracias por ser parte de nuestra comunidad" },
     ],
+  };
+
+  // catalog(): every orderable id, shared by the site, the assistant's tools and the DB seed.
+  // kind: main | combo | promo | drink | extra | sauce | side | dessert. Items without a published price are not orderable.
+  BRAND.catalog = function () {
+    const out = {};
+    const comboIds = new Set(BRAND.combos.filter((c) => c.parts).map((c) => c.id));
+    BRAND.menu.forEach((c) => c.items.forEach((it, i) => {
+      if (it.price == null) return;
+      out[it.id] = { id: it.id, name: it.name, price: it.price, kind: comboIds.has(it.id) ? "combo" : "main", cat: c.id, size: c.size, desc: it.desc, veg: !!it.veg, hot: !!it.hot, sort: i };
+    }));
+    BRAND.addons.extras.items.forEach((it, i) => (out[it.id] = { id: it.id, name: it.name, price: it.price, kind: "side", cat: "extras", size: it.note || "", desc: it.note || "", veg: true, hot: false, sort: 100 + i }));
+    BRAND.addons.salsas.items.forEach((it, i) => (out[it.id] = { id: it.id, name: it.name, price: it.price, kind: "sauce", cat: "salsas", size: it.note || "", desc: it.note || "", veg: true, hot: false, sort: 200 + i }));
+    BRAND.addons.drinks.items.forEach((it, i) => (out[it.id] = { id: it.id, name: it.name, price: it.price, kind: "drink", cat: "jugos", size: /grande/.test(it.name) ? "grande" : "mediano", desc: "Jugo natural", veg: true, hot: false, sort: 300 + i }));
+    BRAND.weekly.filter((w) => !w.ref).forEach((w, i) => (out[w.id] = { id: w.id, name: w.title, price: w.price, kind: "promo", cat: "promos", size: "", desc: w.desc, veg: false, hot: true, sort: 400 + i, day: w.day, until: w.until, inStoreOnly: !!w.inStoreOnly }));
+    return out;
   };
 
   // Lookup helper shared by site and AI

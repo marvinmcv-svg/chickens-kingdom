@@ -3,8 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "description": "Chicken's Kingdom Bolivia: marketing + WhatsApp ordering site with the Pollit-IA receptionist",
-  "engines": { "node": ">=20" },
-  "scripts": { "dev": "vercel dev" },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test tests/tools.test.js",
+    "test:db": "bash tests/db/run-local.sh",
+    "seed": "node scripts/seed-sql.js > supabase/seed.sql",
+    "dev": "vercel dev"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.12.0",
     "openai": "^7.62.0"

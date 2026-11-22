@@ -110,83 +110,152 @@
     $("#pedir").scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
   });
 
-  /* ---------------- nav ---------------- */
-  const nav = $("#nav");
-  const onScroll = () => nav.classList.toggle("is-solid", window.scrollY > 40);
+  /* ---------------- header ---------------- */
+  const hdr = $("#hdr");
+  const tickH = () => $("#ticker").offsetHeight || 48;
+  const onScroll = () => hdr.classList.toggle("is-solid", window.scrollY > tickH());
   window.addEventListener("scroll", onScroll, { passive: true }); onScroll();
-  const burger = $("#burger"), links = $("#navLinks");
-  burger.addEventListener("click", () => {
-    const open = burger.getAttribute("aria-expanded") !== "true";
-    burger.setAttribute("aria-expanded", String(open)); links.classList.toggle("is-open", open);
-  });
-  links.addEventListener("click", (e) => { if (e.target.closest("a,button")) { burger.setAttribute("aria-expanded", "false"); links.classList.remove("is-open"); } });
+  const burger = $("#burger"), pill = $("#pill");
+  function setMenu(open) {
+    burger.setAttribute("aria-expanded", String(open)); pill.classList.toggle("is-open", open); hdr.classList.toggle("menu-open", open);
+    document.body.style.overflow = open ? "hidden" : "";
+  }
+  burger.addEventListener("click", () => setMenu(burger.getAttribute("aria-expanded") !== "true"));
+  pill.addEventListener("click", (e) => { if (e.target.closest("a,button")) setMenu(false); });
 
-  /* ---------------- hero: live pill, stats, fan ---------------- */
+  /* ---------------- ticker ---------------- */
+  const ICON = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 3.5a5 5 0 0 1 2.9 8.6l-4.6 4.6-3.6-3.6 4.6-4.6"/><path d="M10.2 13.1 6 17.3a2 2 0 1 1-2.6 1.3 2 2 0 1 1 1.3-2.6L9 11.7"/></svg>`;
+  function renderTicker() {
+    const t = nowLP();
+    const combos = K.combos.filter((c) => c.parts).map((c) => K.findItem(c.id));
+    const cheapest = Math.min(...combos.map((c) => c.price));
+    const promos = todaysPromos(t);
+    const nextYape = K.weekly.find((w) => w.day != null && promoActive(w, t));
+    const items = [
+      `Combos con refresco <b>desde ${money(cheapest)}</b>`,
+      nextYape ? `Miércoles: <b>Combo Yape ${money(nextYape.price)}</b> pagando con Yape` : `Pipocas de pollo <b>${money(K.findItem("pipocas-de-pollo").price)}</b>`,
+      promos.length ? `<b>Hoy:</b> ${esc(promos.map((w) => w.title).join(" y "))} a <b>${money(promos[0].price)}</b>` : `<b>Hoy:</b> Combo Queen a <b>${money(K.findItem("combo-queen").price)}</b>`,
+      `Pide por <b>WhatsApp</b>, app o al <b>4200780</b> (Cbba) · <b>3336171</b> (Scz)`,
+    ];
+    const html = items.map((x) => `<span class="ticker__item">${x}${ICON}</span>`).join("");
+    $("#tickerTrack").innerHTML = html + html;
+  }
+
+  /* ---------------- live status (header, order box, branches) ---------------- */
   function renderLive() {
     const t = nowLP();
-    const st = K.branches.map((b) => branchStatus(b, t));
-    const open = st.filter((s) => s.open).length, N = K.branches.length;
-    const promos = todaysPromos(t);
-    const promoTxt = promos.length ? `Hoy: Combo Yape ${money(promos[0].price)} 🔥` : `Hoy: Solo Cuarto ${money(29)}`;
-    const pill = $("#livePill");
-    if (open > 0) {
-      $("#liveText").textContent = `${open} de ${N} sucursales abiertas · ${promoTxt}`;
-      pill.classList.remove("is-closed");
-    } else {
-      const first = K.branches.map((b) => b.open).sort()[0];
-      $("#liveText").textContent = t.mins < toMin(first) ? `Abrimos hoy a las ${first} · ${promoTxt}` : `Volvemos mañana desde las ${first} 🍗`;
-      pill.classList.add("is-closed");
-    }
+    const open = K.branches.filter((b) => branchStatus(b, t).open).length, N = K.branches.length;
+    const first = K.branches.map((b) => b.open).sort()[0];
+    $("#hdrOpen").textContent = open ? `${open} de ${N} abiertas` : `Abrimos ${first}`;
+    $(".hdr__open").classList.toggle("is-closed", !open);
+    const st = $("#obStatus");
+    st.classList.toggle("is-closed", !open);
+    st.querySelector("span").innerHTML = open ? `<b>${open} de ${N}</b> sucursales abiertas ahora`
+      : t.mins < toMin(first) ? `Abrimos hoy a las ${esc(first)}` : `Volvemos mañana desde las ${esc(first)}`;
     $("#clock").innerHTML = `${esc(t.hhmm)} en Bolivia · <b>${open} de ${N}</b> abiertas`;
   }
 
-  $("#stats").innerHTML = K.stats.map((s) => `<li><b data-count="${s.value}" data-dec="${s.decimals || 0}" data-suf="${esc(s.suffix)}">${s.decimals ? s.value.toFixed(s.decimals).replace(".", ",") : s.value}${esc(s.suffix)}</b><span>${esc(s.label)}</span></li>`).join("");
-  function countUp() {
-    if (reduced) return;
-    $$("#stats [data-count]").forEach((el) => {
-      const to = +el.dataset.count, dec = +el.dataset.dec, suf = el.dataset.suf, t0 = performance.now(), dur = 1600;
-      const tick = (t) => {
-        const p = Math.min(1, (t - t0) / dur), v = to * (1 - Math.pow(1 - p, 3));
-        el.textContent = (dec ? v.toFixed(dec).replace(".", ",") : Math.round(v)) + suf;
-        if (p < 1) requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    });
+  /* ---------------- hero carousel ---------------- */
+  const today0 = nowLP().date;
+  const slides = $$(".slide").filter((s) => !s.dataset.until || today0 <= s.dataset.until);
+  $$(".slide").forEach((s) => { if (!slides.includes(s)) s.hidden = true; });
+  slides.forEach((s, i) => s.setAttribute("aria-label", s.getAttribute("aria-label").replace(/^\d+ de \d+/, `${i + 1} de ${slides.length}`)));
+  let cur = 0, autoT = null, paused = false, heroVisible = true;
+  const hero = $("#top");
+  $("#dots").innerHTML = slides.map((s, i) => `<button class="dot" type="button" role="tab" aria-selected="${i === 0}" aria-label="${esc(s.getAttribute("aria-label"))}" tabindex="${i === 0 ? 0 : -1}"></button>`).join("");
+  const dots = $$("#dots .dot");
+  function syncSlideVideo() {
+    slides.forEach((s, k) => s.querySelectorAll("video[data-slide-video]").forEach((v) => {
+      if (k === cur && heroVisible && !reduced) { const p = v.play(); if (p && p.catch) p.catch(() => {}); } else v.pause();
+    }));
   }
-  setTimeout(countUp, 900);
+  function show(i) {
+    cur = (i + slides.length) % slides.length;
+    slides.forEach((s, k) => { const on = k === cur; s.classList.toggle("is-on", on); s.inert = !on; s.setAttribute("aria-hidden", String(!on)); });
+    dots.forEach((d, k) => { d.setAttribute("aria-selected", String(k === cur)); d.tabIndex = k === cur ? 0 : -1; });
+    const light = slides[cur].dataset.tone === "light";
+    hero.classList.toggle("on-light", light);
+    hdr.classList.toggle("on-light", light && window.scrollY <= tickH());
+    syncSlideVideo();
+  }
+  function schedule() { clearInterval(autoT); if (!reduced && !paused && slides.length > 1) autoT = setInterval(() => { if (!document.hidden) show(cur + 1); }, 6500); }
+  dots.forEach((d, k) => d.addEventListener("click", () => { show(k); schedule(); }));
+  $("#dots").addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    show(cur + (e.key === "ArrowRight" ? 1 : -1)); dots[cur].focus(); schedule();
+  });
+  const slidesEl = $("#slides");
+  ["mouseenter", "focusin"].forEach((ev) => slidesEl.addEventListener(ev, () => { paused = true; clearInterval(autoT); }));
+  ["mouseleave", "focusout"].forEach((ev) => slidesEl.addEventListener(ev, () => { paused = false; schedule(); }));
+  let sx = null;
+  slidesEl.addEventListener("touchstart", (e) => { sx = e.touches[0].clientX; }, { passive: true });
+  slidesEl.addEventListener("touchend", (e) => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50) { show(cur + (dx < 0 ? 1 : -1)); schedule(); } sx = null; });
+  new IntersectionObserver((ents) => { heroVisible = ents[0].isIntersecting; syncSlideVideo(); }, { threshold: 0.2 }).observe(hero);
+  window.addEventListener("scroll", () => hdr.classList.toggle("on-light", slides[cur].dataset.tone === "light" && window.scrollY <= tickH()), { passive: true });
+  show(0); schedule();
 
-  const fan = $("#fan");
-  if (finePointer && !reduced) {
-    const hero = $(".hero");
-    hero.addEventListener("pointermove", (e) => {
-      const r = hero.getBoundingClientRect();
-      fan.style.setProperty("--mx", ((e.clientX - r.left) / r.width - .5) * 2);
-      fan.style.setProperty("--my", ((e.clientY - r.top) / r.height - .5) * 2);
-    });
-    hero.addEventListener("pointerleave", () => { fan.style.setProperty("--mx", 0); fan.style.setProperty("--my", 0); });
+  // QR card
+  if (store.get("ck-qr-hidden", false, sessionStorage)) $("#qr").hidden = true;
+  $("#qrClose").addEventListener("click", () => { $("#qr").hidden = true; store.set("ck-qr-hidden", true, sessionStorage); });
+
+  /* ---------------- order box ---------------- */
+  function renderObBranches() {
+    const t = nowLP(), sel = $("#obBranch"), keep = sel.value;
+    sel.innerHTML = `<option value="">Elige tu sucursal</option>` + ["Cochabamba", "Santa Cruz"].map((c) => `<optgroup label="${c}">` +
+      K.branches.filter((b) => b.city === c).map((b) => `<option value="${esc(b.id)}">${esc(b.name)} · ${esc(branchStatus(b, t).label)}</option>`).join("") + `</optgroup>`).join("");
+    sel.value = keep;
+  }
+  $("#orderbox").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const svc = $('#orderbox input[name="obService"]:checked').value;
+    const b = $("#obBranch").value;
+    setIntent(svc);
+    if (b) { F.branch = b; saveF(); renderBranchSelect(); }
+    goStep(2, true);
+    $("#pedir").scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
+  });
+
+  /* ---------------- offers row ---------------- */
+  function renderOffers() {
+    const rail = $("#offersRail");
+    rail.innerHTML = (K.offers || []).map((o) => {
+      const ext = /^https?:/.test(o.href);
+      return `<a class="ocard${o.w > o.h ? " ocard--card" : ""}" href="${esc(o.href)}"${ext ? ' target="_blank" rel="noopener"' : ""}><img src="${esc(o.img)}" alt="${esc(o.alt)}" width="${o.w}" height="${o.h}" loading="lazy"></a>`;
+    }).join("");
+    const prev = $("#offPrev"), next = $("#offNext");
+    const upd = () => { prev.hidden = rail.scrollLeft < 10; next.hidden = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 10; };
+    const stepW = () => (rail.querySelector(".ocard")?.getBoundingClientRect().width || 300) + 18;
+    prev.addEventListener("click", () => rail.scrollBy({ left: -stepW(), behavior: reduced ? "auto" : "smooth" }));
+    next.addEventListener("click", () => rail.scrollBy({ left: stepW(), behavior: reduced ? "auto" : "smooth" }));
+    rail.addEventListener("scroll", upd, { passive: true }); window.addEventListener("resize", upd); upd();
   }
 
-  /* ---------------- marquee ---------------- */
-  const mq = ["Combo Queen", "Combo King", "Pipocas de pollo", "Miércoles Yape Bs 20", "Llajua de la casa", "Desde el 2000", "Con la pechuga en alto", "Helados Kingdom", "Jugos naturales"];
-  const mqHTML = mq.map((x) => `<span>${esc(x)}</span><span><i>✦</i></span>`).join("");
-  $("#marquee").innerHTML = mqHTML + mqHTML;
+  /* ---------------- footer dropdowns ---------------- */
+  const groups = $$("#footGroups details");
+  groups.forEach((d) => d.addEventListener("toggle", () => { if (d.open && window.innerWidth > 860) groups.forEach((o) => { if (o !== d) o.open = false; }); }));
+  document.addEventListener("click", (e) => { if (window.innerWidth > 860 && !e.target.closest("#footGroups")) groups.forEach((d) => (d.open = false)); });
+  document.addEventListener("click", (e) => { const c = e.target.closest("[data-city-go]"); if (c) { city = c.dataset.cityGo; renderBranches(); } });
 
   /* ---------------- weekly + spotlight ---------------- */
   function renderWeekly() {
     const t = nowLP();
-    const cards = K.weekly.filter((w) => promoActive(w, t));
+    const cards = K.weekly.filter((w) => promoActive(w, t)).sort((a, b) => (b.day === t.day) - (a.day === t.day));
     $("#weekly").innerHTML = cards.map((w, i) => {
       const today = w.day === t.day;
       const days = w.day == null ? null : (w.day - t.day + 7) % 7;
       const soon = w.day != null && !today ? `<span class="wcard__soon">${days === 1 ? "Mañana" : `En ${days} días`}</span>` : "";
+      const cat = w.cats && K.menu.find((c) => c.id === w.cats[0]);
+      const link = cat ? `<a class="wcard__link" href="#menu" data-tabgo="${esc(cat.id)}">Ver ${esc(cat.name.toLowerCase())} →</a>` : `<a class="wcard__link" href="#menu">Ver el menú →</a>`;
       return `<article class="wcard reveal${today ? " is-today" : ""}" style="--d:${i * 70}ms">
         ${today ? '<span class="wcard__today">Hoy</span>' : ""}
+        ${w.img ? `<img class="wcard__img" src="${esc(w.img)}" alt="Arte de la promo ${esc(w.title)}" width="900" height="1125" loading="lazy">` : ""}
         <p class="wcard__day">${esc(w.name)}</p>
         <h3>${esc(w.title)}</h3>
         <p>${esc(w.desc)}</p>
         <span class="pill">${esc(w.tag)}</span>
         <div class="wcard__price"><span class="price-xl"><small>${CUR}</small>${num(w.price)}</span>${soon}
-          <button class="add${today ? "" : ""}" type="button" data-add="${esc(w.id)}" aria-label="Agregar ${esc(w.title)}">+</button></div>
+          <button class="add" type="button" data-add="${esc(w.id)}" aria-label="Agregar ${esc(w.title)}">+</button></div>
+        ${link}
       </article>`;
     }).join("");
     $("#promoRules").textContent = cards.some((w) => w.inStoreOnly) ? K.promoRules : "";
@@ -380,16 +449,22 @@
   }
   const bind = (sel, key) => { const el = $(sel); if (F[key]) el.value = F[key]; el.addEventListener("input", () => { F[key] = el.value; saveF(); updatePreview(); }); };
   renderBranchSelect();
-  [["#fBranch", "branch"], ["#fName", "name"], ["#fAddr", "addr"], ["#fRef", "ref"], ["#fNote", "note"], ["#whenTime", "whenTime"], ["#evDate", "evDate"], ["#evTime", "evTime"], ["#evPeople", "evPeople"], ["#evNote", "evNote"], ["#qText", "qText"]].forEach(([s, k]) => bind(s, k));
+  [["#fBranch", "branch"], ["#fName", "name"], ["#fPhone", "phone"], ["#fAddr", "addr"], ["#fRef", "ref"], ["#fNote", "note"], ["#whenTime", "whenTime"], ["#evDate", "evDate"], ["#evTime", "evTime"], ["#evPeople", "evPeople"], ["#evNote", "evNote"], ["#qText", "qText"]].forEach(([s, k]) => bind(s, k));
   $("#fBranch").addEventListener("change", () => { F.branch = $("#fBranch").value; saveF(); updatePreview(); });
 
   function recipient() {
     const b = K.branches.find((x) => x.id === F.branch);
     return b ? { num: b.whatsapp, label: `${b.name} (${b.city})` } : { num: K.config.whatsapp, label: "Call Center" };
   }
-  function buildMessage() {
+  // Bolivian mobile: 8 digits starting with 6 or 7 (an optional +591 / 591 prefix is accepted)
+  function normPhone(v) {
+    let d = String(v || "").replace(/\D/g, "");
+    if (d.startsWith(K.config.phonePrefix) && d.length === K.config.phonePrefix.length + K.config.phoneDigits) d = d.slice(K.config.phonePrefix.length);
+    return new RegExp(`^[67]\\d{${K.config.phoneDigits - 1}}$`).test(d) ? d : "";
+  }
+  function buildMessage(extra) {
     const r = recipient(), L = [];
-    const who = () => { if (F.name) L.push(`👤 ${F.name}`); L.push(`📍 Sucursal: ${r.label}`); };
+    const who = () => { if (F.name) L.push(`👤 ${F.name}`); if (normPhone(F.phone)) L.push(`📱 ${normPhone(F.phone)}`); L.push(`📍 Sucursal: ${r.label}`); };
     if (F.intent === "delivery" || F.intent === "pickup") {
       L.push(F.intent === "delivery" ? "¡Hola Chicken's Kingdom! 🍗 Quiero hacer un pedido *a domicilio*:" : "¡Hola Chicken's Kingdom! 🍗 Quiero hacer un pedido *para recoger*:");
       L.push("");
@@ -414,6 +489,7 @@
     } else {
       return "";
     }
+    if (extra) L.push("", ...extra);
     return L.join("\n");
   }
   function updatePreview() {
@@ -438,6 +514,7 @@
     }
     if (s >= 3) {
       if (!(F.name || "").trim()) return { step: 3, msg: "¿Cómo te llamas? 🙂" };
+      if ((isOrder || (F.phone || "").trim()) && !normPhone(F.phone)) return { step: 3, msg: "Escribe tu WhatsApp: 8 dígitos, por ejemplo 71234567 📱" };
       if (F.intent !== "question" && (!F.branch || F.branch === "cc")) return { step: 3, msg: "Elige tu sucursal 📍" };
       if (F.intent === "delivery" && !(F.addr || "").trim()) return { step: 3, msg: "Necesitamos tu dirección para el delivery 🏠" };
       if (F.when === "🕒 Programar" && isOrder && !F.whenTime) return { step: 3, msg: "¿A qué hora lo quieres? 🕒" };
@@ -458,15 +535,112 @@
   $("#fNext").addEventListener("click", () => goStep(step + 1));
   $("#fBack").addEventListener("click", () => goStep(step - 1));
   $("#steps").addEventListener("click", (e) => { const b = e.target.closest("[data-step]"); if (b) goStep(+b.dataset.step); });
-  $("#sendWa").addEventListener("click", (e) => { const bad = validate(3); if (bad) { e.preventDefault(); goStep(bad.step); } });
+  /* ---- recording the order (Supabase place_order RPC), then WhatsApp ---- */
+  const CFG = window.KINGDOM_CONFIG || {};
+  const backendOn = !!(CFG.supabaseUrl && CFG.publishableKey);
+  const ERRORS = {
+    store_paused: "Esa sucursal pausó los pedidos por un momento. Elige otra sucursal 🙏",
+    delivery_unavailable: "Esa sucursal no está tomando delivery ahora. Prueba «Recoger» u otra sucursal.",
+    pickup_unavailable: "Esa sucursal no está tomando pedidos para recoger ahora. Elige otra.",
+    invalid_phone: "Revisa tu número de WhatsApp: 8 dígitos, por ejemplo 71234567.",
+    missing_address: "Necesitamos tu dirección para el delivery 🏠",
+    rate_limited: "Recibimos varios pedidos seguidos de este número. Espera unos minutos 🙏",
+    customer_blocked: "No pudimos registrar el pedido. Escríbenos por WhatsApp, por favor.",
+    in_store_only: "El Combo Yape es solo en sucursal: elige «Recoger» 🙏",
+  };
+  const errorText = (code) => code && code.startsWith("sold_out:") ? `Se nos acabó ${code.slice(9)} en esa sucursal 😔. Quítalo o elige otra sucursal.`
+    : code && code.startsWith("unknown_item:") ? "Uno de los productos ya no está en el menú. Actualiza la página, por favor."
+    : ERRORS[code] || "No pudimos registrar el pedido, pero puedes enviarlo igual por WhatsApp.";
+  async function placeOrderRPC(payload) {
+    if (!backendOn) return { offline: true };
+    try {
+      const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 6000);
+      const res = await fetch(`${CFG.supabaseUrl}/rest/v1/rpc/place_order`, {
+        method: "POST", signal: ctrl.signal,
+        headers: { apikey: CFG.publishableKey, Authorization: `Bearer ${CFG.publishableKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ payload }),
+      });
+      clearTimeout(to);
+      const j = await res.json().catch(() => ({}));
+      if (res.ok && j && j.ok) return { data: j };
+      const code = String((j && (j.message || j.error)) || "").trim();
+      return code ? { error: code } : { offline: true };
+    } catch (err) { return { offline: true }; }
+  }
+  const cartSig = () => JSON.stringify([cart.map((l) => [l.id, l.qty]), F.branch, F.intent, normPhone(F.phone), F.addr || "", F.whenTime || "", F.when]);
+  function clientRef() {
+    const sig = cartSig();
+    if (F.refSig !== sig || !F.clientRef) { F.clientRef = `web-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`; F.refSig = sig; saveF(); }
+    return F.clientRef;
+  }
+  function saveMiPedido(entry) {
+    const list = store.get("ck-mipedido", []).filter((x) => x && x.code !== entry.code);
+    list.unshift(entry); store.set("ck-mipedido", list.slice(0, 3));
+  }
+  const trackUrl = (token) => `${(CFG.siteUrl || location.origin).replace(/\/$/, "")}${CFG.trackPath || "/sigue-tu-pedido/"}?t=${encodeURIComponent(token)}`;
+  let sending = false;
+  $("#sendWa").addEventListener("click", async (e) => {
+    const bad = validate(3);
+    if (bad) { e.preventDefault(); goStep(bad.step); return; }
+    const isOrder = F.intent === "delivery" || F.intent === "pickup";
+    if (!isOrder || !backendOn) return; // plain wa.me link
+    e.preventDefault();
+    if (sending) return; sending = true;
+    const win = window.open("about:blank", "_blank");
+    const r = recipient();
+    $("#fmsg").textContent = "Registrando tu pedido… 🍗";
+    const out = await placeOrderRPC({
+      client_ref: clientRef(), channel: "web", store: F.branch, service: F.intent,
+      customer_name: (F.name || "").trim(), customer_phone: normPhone(F.phone),
+      address: F.intent === "delivery" ? (F.addr || "").trim() : null, reference: F.intent === "delivery" ? (F.ref || "").trim() : null,
+      lat: null, lng: null, scheduled_for: F.when === "🕒 Programar" ? F.whenTime || null : null, notes: (F.note || "").trim() || null,
+      items: cart.map((l) => ({ id: l.id, qty: l.qty })),
+    });
+    sending = false;
+    if (out.error) {
+      if (win) win.close();
+      $("#fmsg").textContent = errorText(out.error);
+      return;
+    }
+    let msg;
+    if (out.data) {
+      const d = out.data, url = trackUrl(d.tracking_token);
+      msg = buildMessage([`Pedido *${d.code}*`, `Sigue tu pedido: ${url}`]);
+      saveMiPedido({ code: d.code, at: Date.now(), branch: F.branch, service: F.intent, cart: Object.fromEntries(cart.map((l) => [l.id, l.qty])), track: d.tracking_token });
+      $("#placed").hidden = false;
+      $("#placed").innerHTML = `<p class="placed__ok">✅ Pedido <b>${esc(d.code)}</b> registrado · Total ${money(+d.total)}</p>
+        <a class="btn btn--mustard btn--block" href="${esc(url)}">📍 Sigue tu pedido</a>`;
+      $("#fmsg").textContent = "";
+    } else {
+      msg = buildMessage();
+      saveMiPedido({ code: `local-${Date.now().toString(36)}`, at: Date.now(), branch: F.branch, service: F.intent, cart: Object.fromEntries(cart.map((l) => [l.id, l.qty])) });
+      $("#fmsg").textContent = "Abrimos WhatsApp para enviar tu pedido 🍗";
+    }
+    const wa = `https://wa.me/${r.num}?text=${encodeURIComponent(msg)}`;
+    if (win) win.location.href = wa; else location.href = wa;
+  });
   document.addEventListener("click", (e) => { const a = e.target.closest("[data-intent]"); if (a) { setIntent(a.dataset.intent); goStep(cartCount() ? 2 : 1); } });
 
-  /* ---------------- AI chat ---------------- */
+  /* ---------------- AI ordering assistant (Pollit-IA) ---------------- */
   const AI = K.ai;
-  const SUGS = ["¿Qué sucursales están abiertas?", "¿Cuál es la promo de hoy?", "¿Qué trae el Combo Queen?", "¿Tienen opciones sin carne?"];
+  const CAT = K.catalog();
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   let history = store.get("ck-chat", [], sessionStorage);
+  let aiState = store.get("ck-ai-state", null, sessionStorage) || { cart: {}, order: {}, stage: "browsing" };
   let chatTrigger = null, busy = false;
   const chat = $("#chat"), log = $("#chatLog");
+
+  // site cart <-> assistant cart ({id: qty}); the site cart is the single source of truth
+  const cartMap = () => Object.fromEntries(cart.map((l) => [l.id, l.qty]));
+  function setCartFromMap(map) {
+    cart = Object.entries(map || {}).filter(([id, q]) => CAT[id] && q > 0)
+      .map(([id, q]) => ({ id, name: CAT[id].name, price: CAT[id].price, qty: Math.min(50, Math.max(1, q | 0)), inStoreOnly: !!CAT[id].inStoreOnly }));
+    saveCart();
+    const c = $("#cartCount"); c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
+  }
+  const miPedido = () => store.get("ck-mipedido", []).filter((x) => x && x.cart).slice(0, 3)
+    .map((x) => ({ id: x.code, at: x.at, branch: x.branch, service: x.service, cart: x.cart, track: x.track && UUID_RE.test(x.track) ? x.track : undefined }));
+
   function md(text) {
     const lines = esc(text).split("\n"); let out = "", inList = false;
     lines.forEach((ln) => {
@@ -478,12 +652,24 @@
     });
     return out + (inList ? "</ul>" : "");
   }
-  function bubble(role, html) { const d = document.createElement("div"); d.className = `msg msg--${role === "user" ? "user" : "bot"}`; d.innerHTML = html; log.appendChild(d); log.scrollTop = log.scrollHeight; return d; }
+  function bubble(role, html, cls) {
+    const d = document.createElement("div");
+    d.className = `msg msg--${role === "user" ? "user" : "bot"}${cls ? " " + cls : ""}`;
+    d.innerHTML = html; log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
+  }
+  const safeWa = (u) => typeof u === "string" && /^https:\/\/wa\.me\/\d{6,15}(\?text=[^\s"<>]*)?$/.test(u) ? u : null;
+  function safeTrack(u) {
+    try { const x = new URL(u, location.origin); const base = new URL(trackUrl("00000000-0000-0000-0000-000000000000")); return x.origin === base.origin && x.pathname === base.pathname && UUID_RE.test(x.searchParams.get("t") || "") ? x.href : null; } catch (e) { return null; }
+  }
+  const SUGS = () => (miPedido().length ? ["🍗 Lo de siempre"] : []).concat(["¿Hay promos hoy?", "Quiero pedir", "¿Qué sucursales están abiertas?", "¿Opciones sin carne?"]);
   function renderChat() {
     log.innerHTML = "";
-    bubble("bot", md(`¡Hola! Soy **${AI}** 🐣, la recepcionista virtual de Chicken's Kingdom. Pregúntame por el menú, las promos o qué sucursal está abierta.`));
+    bubble("bot", md(`¡Hola! Soy **${AI}** 🐣, la asistente de pedidos de Chicken's Kingdom. Dime qué se te antoja y armo tu bandeja.`));
     history.forEach((m) => bubble(m.role, m.role === "user" ? `<p>${esc(m.content)}</p>` : md(m.content)));
-    $("#chatSugs").innerHTML = history.length ? "" : SUGS.map((s) => `<button type="button">${esc(s)}</button>`).join("");
+    chips(history.length ? [] : SUGS());
+  }
+  function chips(list) {
+    $("#chatSugs").innerHTML = (list || []).slice(0, 4).map((s) => `<button type="button">${esc(s)}</button>`).join("");
   }
   const LINKS = `<div class="msg__links"><a href="#menu" data-chat-close>Ver menú</a><a href="#pedir" data-chat-close>Pedir por WhatsApp</a></div>`;
   function errorHTML(kind) {
@@ -492,12 +678,19 @@
       : "Se me cortó la conexión 😅. Intenta de nuevo en un ratito.";
     return md(txt) + LINKS;
   }
+  function cartCardHTML() {
+    if (!cart.length) return `<div class="ccard"><b>Tu bandeja</b><p>Vacía por ahora 🍗</p></div>`;
+    return `<div class="ccard"><b>Tu bandeja</b><ul>${cart.map((l) => `<li><span>${l.qty} × ${esc(l.name)}</span><span>${money(l.price * l.qty)}</span></li>`).join("")}</ul><p class="ccard__tot"><span>Total</span><span>${money(cartTotal())}</span></p></div>`;
+  }
   function openChat(trigger) {
     chatTrigger = trigger || document.activeElement;
-    chat.hidden = false; renderChat(); updateMbar();
+    chat.hidden = false; document.body.classList.add("chat-open"); renderChat(); updateMbar();
     setTimeout(() => $("#chatInput").focus(), 50);
   }
-  function closeChat() { chat.hidden = true; updateMbar(); if (chatTrigger && chatTrigger.focus) chatTrigger.focus(); }
+  function closeChat() {
+    chat.hidden = true; document.body.classList.remove("chat-open"); voice.stop(); updateMbar();
+    if (chatTrigger && chatTrigger.focus) chatTrigger.focus();
+  }
   document.addEventListener("click", (e) => {
     const o = e.target.closest("[data-pollitia-open]"); if (o) { e.preventDefault(); openChat(o); return; }
     if (e.target.closest("[data-chat-close]")) closeChat();
@@ -505,45 +698,155 @@
   $("#chatClose").addEventListener("click", closeChat);
   $("#chatSugs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) send(b.textContent); });
   $("#chatForm").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#chatInput").value.trim(); if (v) send(v); });
-  async function send(text) {
+  log.addEventListener("click", (e) => {
+    const c = e.target.closest("[data-say]"); if (c) { send(c.dataset.say); return; }
+    if (e.target.closest("[data-share-loc]")) shareLocation(e.target.closest("[data-share-loc]"));
+  });
+  function shareLocation(btn) {
+    if (!navigator.geolocation) { send("No puedo compartir mi ubicación"); return; }
+    btn.disabled = true; btn.textContent = "Buscando tu ubicación…";
+    navigator.geolocation.getCurrentPosition((pos) => {
+      aiState.order = Object.assign({}, aiState.order, { location: { lat: +pos.coords.latitude.toFixed(6), lng: +pos.coords.longitude.toFixed(6) } });
+      store.set("ck-ai-state", aiState, sessionStorage);
+      btn.textContent = "📍 Ubicación compartida"; send("📍 Ubicación compartida");
+    }, () => { btn.disabled = false; btn.textContent = "📍 Compartir mi ubicación"; send("No pude compartir mi ubicación"); }, { enableHighAccuracy: true, timeout: 12000 });
+  }
+
+  async function send(text, viaVoice) {
     if (busy) return;
-    busy = true; $("#chatInput").value = ""; $(".chat__send").disabled = true; $("#chatSugs").innerHTML = "";
+    busy = true; $("#chatInput").value = ""; $(".chat__send").disabled = true; chips([]);
     history.push({ role: "user", content: text.slice(0, 1200) });
     bubble("user", `<p>${esc(text)}</p>`);
-    const b = bubble("bot", '<span class="dots" aria-label="Escribiendo"><i></i><i></i><i></i></span>');
-    let acc = "", failed = null;
+    let b = bubble("bot", '<span class="dots" aria-label="Escribiendo"><i></i><i></i><i></i></span>');
+    let acc = "", failed = null, cartCard = null, spoken = "";
+    const extra = document.createElement("div"); extra.className = "msg__extra";
+    voice.setStatus("thinking");
+    aiState.cart = cartMap(); aiState.history = miPedido();
     try {
-      const res = await fetch("/api/pollitia", { method: "POST", headers: { "Content-Type": "application/json", "X-Pollitia-Soft": "1" }, body: JSON.stringify({ messages: history.slice(-16) }) });
+      const res = await fetch(`/api/${"pollitia"}`, {
+        method: "POST", headers: { "Content-Type": "application/json", "X-Pollitia-Soft": "1" },
+        body: JSON.stringify({ messages: history.slice(-16), state: aiState, channel: viaVoice ? "voice" : "text" }),
+      });
       const ctype = res.headers.get("content-type") || "";
       if (res.ok && ctype.includes("application/json")) { const j = await res.json().catch(() => ({})); failed = j.error === "rate_limited" ? "rate" : j.error === "not_configured" ? "soon" : "net"; }
       else if (!res.ok || !res.body) failed = res.status === 429 ? "rate" : [404, 405, 501, 503].includes(res.status) ? "soon" : "net";
       else {
-        const reader = res.body.getReader(), dec = new TextDecoder();
+        const reader = res.body.getReader(), dec = new TextDecoder(); let buf = "";
+        const handle = (ev) => {
+          switch (ev.type) {
+            case "text": acc += ev.text; b.innerHTML = md(acc); b.appendChild(extra); break;
+            case "cart": setCartFromMap(ev.cart); if (!cartCard) { cartCard = document.createElement("div"); extra.appendChild(cartCard); } cartCard.innerHTML = cartCardHTML(); b.appendChild(extra); break;
+            case "options": chips(ev.options); break;
+            case "readback": extra.insertAdjacentHTML("beforeend", `<div class="rcard"><b>Revisa tu pedido</b><pre>${esc(ev.summary)}</pre></div>`); chips(["Sí, confirmar", "Cambiar algo"]); b.appendChild(extra); break;
+            case "location": extra.insertAdjacentHTML("beforeend", `<button type="button" class="btn btn--red btn--sm" data-share-loc>📍 Compartir mi ubicación</button>`); b.appendChild(extra); break;
+            case "order": {
+              const wa = safeWa(ev.url), tr = ev.track && safeTrack(ev.track);
+              extra.insertAdjacentHTML("beforeend", `<div class="ocard2"><b>✅ Pedido ${esc(ev.id)} listo</b><p>${esc(ev.branch || "")} · ${money(+ev.total || 0)}</p>
+                ${wa ? `<a class="btn btn--whatsapp btn--block" href="${esc(wa)}" target="_blank" rel="noopener">Enviar por WhatsApp a ${esc(ev.branch || "la sucursal")}</a>` : ""}
+                ${tr ? `<a class="btn btn--mustard btn--block" href="${esc(tr)}">📍 Sigue tu pedido</a>` : ""}</div>`);
+              if (ev.entry && ev.entry.code) saveMiPedido(ev.entry);
+              b.appendChild(extra); break;
+            }
+            case "track": { const tr = safeTrack(ev.url); if (tr) { extra.insertAdjacentHTML("beforeend", `<a class="btn btn--mustard btn--sm" href="${esc(tr)}">📍 Sigue tu pedido ${esc(ev.code || "")}</a>`); b.appendChild(extra); } break; }
+            case "handoff": { const wa = safeWa(ev.url); if (wa) { extra.insertAdjacentHTML("beforeend", `<a class="btn btn--whatsapp btn--sm" href="${esc(wa)}" target="_blank" rel="noopener">Hablar con una persona (${esc(ev.to || "WhatsApp")})</a>`); b.appendChild(extra); } break; }
+            case "state": if (ev.state && typeof ev.state === "object") { aiState = ev.state; store.set("ck-ai-state", aiState, sessionStorage); } break;
+            case "error": failed = ev.kind === "rate" ? "rate" : ev.kind === "not_configured" ? "soon" : "net"; break;
+          }
+          log.scrollTop = log.scrollHeight;
+        };
         for (;;) {
           const { done, value } = await reader.read(); if (done) break;
-          acc += dec.decode(value, { stream: true });
-          if (acc.includes("[[error]]")) { failed = "net"; break; }
-          b.innerHTML = md(acc); log.scrollTop = log.scrollHeight;
+          buf += dec.decode(value, { stream: true });
+          let nl;
+          while ((nl = buf.indexOf("\n")) >= 0) {
+            const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+            if (!line) continue;
+            try { handle(JSON.parse(line)); } catch (err) { /* ignore a malformed line */ }
+          }
         }
-        if (!failed && !acc.trim()) failed = "net";
+        if (buf.trim()) { try { handle(JSON.parse(buf)); } catch (err) { /* ignore */ } }
+        if (!failed && !acc.trim() && !extra.childNodes.length) failed = "net";
       }
     } catch (err) { failed = "net"; }
-    if (failed) { history.pop(); b.innerHTML = errorHTML(failed); }
-    else history.push({ role: "assistant", content: acc.trim() });
+    if (failed) { history.pop(); b.innerHTML = errorHTML(failed); spoken = ""; }
+    else { history.push({ role: "assistant", content: acc.trim() || "👍" }); spoken = acc; }
     history = history.slice(-20); store.set("ck-chat", history, sessionStorage);
-    busy = false; $(".chat__send").disabled = false; $("#chatInput").focus();
+    busy = false; $(".chat__send").disabled = false;
+    if (viaVoice && spoken) voice.speak(spoken); else { voice.setStatus("idle"); if (!viaVoice) $("#chatInput").focus(); }
   }
+
+  /* ---------------- voice mode (Web Speech API) ---------------- */
+  const voice = (function () {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const bar = $("#voiceBar"), mic = $("#voiceMic"), status = $("#voiceStatus"), hands = $("#voiceHands");
+    let rec = null, state = "idle", lock = null;
+    const LABEL = { idle: "Toca el micrófono y habla", listening: "Te escucho…", thinking: "Pensando…", speaking: "Hablando… toca para interrumpir" };
+    function setStatus(s) { state = s; if (!bar) return; bar.dataset.state = s; status.textContent = LABEL[s] || ""; mic.setAttribute("aria-pressed", String(s === "listening")); }
+    if (!SR || !bar) { if (bar) bar.hidden = true; return { setStatus() {}, speak() {}, stop() {} }; }
+    async function wake(on) {
+      try { if (on && "wakeLock" in navigator && !lock) lock = await navigator.wakeLock.request("screen"); if (!on && lock) { await lock.release(); lock = null; } } catch (e) { lock = null; }
+    }
+    function clean(t) {
+      return t.replace(/https?:\/\/\S+/g, "").replace(/\*\*/g, "").replace(/[•\-]\s+/g, "")
+        .replace(/Bs\.?\s?(\d+)(?:,(\d))?/g, (m, a, c) => `${a}${c ? " con " + c + "0" : ""} bolivianos`)
+        .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, "").trim();
+    }
+    function bestVoice() {
+      const vs = speechSynthesis.getVoices();
+      return vs.find((v) => /es-BO/i.test(v.lang)) || vs.find((v) => /es-(419|US|MX)/i.test(v.lang)) || vs.find((v) => /^es/i.test(v.lang)) || null;
+    }
+    function speak(text) {
+      const t = clean(text);
+      if (!t || !("speechSynthesis" in window)) { afterSpeak(); return; }
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(t);
+      const v = bestVoice(); if (v) u.voice = v; u.lang = v ? v.lang : "es-BO"; u.rate = 1.03;
+      u.onend = afterSpeak; u.onerror = afterSpeak;
+      setStatus("speaking"); speechSynthesis.speak(u);
+    }
+    function afterSpeak() { setStatus("idle"); if (hands.checked && !chat.hidden) listen(); else wake(false); }
+    function listen() {
+      if ("speechSynthesis" in window) speechSynthesis.cancel(); // barge-in
+      try { rec && rec.abort(); } catch (e) { /* noop */ }
+      rec = new SR(); rec.lang = "es-BO"; rec.interimResults = true; rec.maxAlternatives = 1;
+      let final = "";
+      rec.onresult = (e) => {
+        let interim = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) final += r[0].transcript; else interim += r[0].transcript; }
+        $("#chatInput").value = (final + interim).trim();
+      };
+      rec.onerror = (e) => {
+        setStatus("idle");
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") { status.textContent = "Sin permiso de micrófono: escribe tu pedido ✍️"; hands.checked = false; }
+        else if (e.error === "language-not-supported") { rec.lang = "es-419"; }
+      };
+      rec.onend = () => { if (state !== "listening") return; const t = final.trim(); if (t) send(t, true); else setStatus("idle"); };
+      setStatus("listening"); wake(true);
+      try { rec.start(); } catch (e) { setStatus("idle"); }
+    }
+    mic.addEventListener("click", () => {
+      if (state === "speaking") { speechSynthesis.cancel(); listen(); return; }
+      if (state === "listening") { try { rec.stop(); } catch (e) { /* noop */ } return; }
+      if (state === "idle") listen();
+    });
+    function stop() { try { rec && rec.abort(); } catch (e) { /* noop */ } if ("speechSynthesis" in window) speechSynthesis.cancel(); setStatus("idle"); wake(false); }
+    setStatus("idle");
+    return { setStatus, speak, stop };
+  })();
 
   /* ---------------- Esc handling ---------------- */
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (!$("#drawer").hidden) closeDrawer(); else if (!chat.hidden) closeChat();
-    else if (links.classList.contains("is-open")) burger.click();
+    else if (pill.classList.contains("is-open")) setMenu(false);
   });
 
   /* ---------------- mobile bar visibility ---------------- */
   const hideZones = new Set();
-  function updateMbar() { $("#mbar").classList.toggle("is-hidden", hideZones.size > 0 || !chat.hidden || !$("#drawer").hidden); }
+  function updateMbar() {
+    $("#mbar").classList.toggle("is-hidden", hideZones.size > 0 || !chat.hidden || !$("#drawer").hidden);
+    $(".ai-fab").classList.toggle("is-hidden", hideZones.has("foot") || !chat.hidden);
+  }
   const zoneIO = new IntersectionObserver((ents) => ents.forEach((en) => { en.isIntersecting ? hideZones.add(en.target.id) : hideZones.delete(en.target.id); updateMbar(); }), { rootMargin: "-45% 0px -45% 0px", threshold: 0 });
   ["top", "pedir", "foot"].forEach((id) => zoneIO.observe(document.getElementById(id)));
 
@@ -565,8 +868,8 @@
   }
 
   /* ---------------- boot ---------------- */
-  renderLive(); renderWeekly(); renderSpot(); renderMenu(); renderAddons(); renderCombos(); renderReels(); renderBranches();
+  renderTicker(); renderObBranches(); renderLive(); renderWeekly(); renderSpot(); renderOffers(); renderMenu(); renderAddons(); renderCombos(); renderReels(); renderBranches();
   renderPicker(); renderCartUI(); setIntent(F.intent); goStep(1);
   wireVideos(); wireReveal(); updateMbar();
-  setInterval(() => { renderLive(); renderBranches(); if (step === 3) renderBranchSelect(); }, 60000);
+  setInterval(() => { renderLive(); renderBranches(); renderObBranches(); if (step === 3) renderBranchSelect(); }, 60000);
 })();
