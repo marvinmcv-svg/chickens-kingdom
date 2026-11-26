@@ -52,37 +52,74 @@
   function addToCart(id, silent) {
     const it = K.findItem(id);
     if (!it || it.price == null) return;
+    const wasEmpty = cart.length === 0;
     const line = cart.find((l) => l.id === id);
     if (line) line.qty++; else cart.push({ id, name: it.name, price: it.price, qty: 1, inStoreOnly: !!it.inStoreOnly });
+    if (it.inStoreOnly) setIntent("pickup");
     saveCart();
-    if (!silent) toast(`Agregado: ${it.name} 🍗`);
     const c = $("#cartCount"); c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
+    const m = $("#mbarCta"); m.classList.remove("bump"); void m.offsetWidth; m.classList.add("bump");
+    if (silent) return;
+    // first plate opens the cart (with the combo upgrade + extras); after that, a toast keeps them browsing
+    if (wasEmpty && $("#drawer").hidden) openDrawer();
+    else if ($("#drawer").hidden) toast(`Agregado: ${it.name} 🍗 · Total ${money(cartTotal())}`);
   }
   function setQty(id, d) {
     const line = cart.find((l) => l.id === id); if (!line) return;
     line.qty += d; if (line.qty <= 0) cart = cart.filter((l) => l !== line);
     saveCart();
   }
+  function upgradeLine(from) {
+    const to = K.upgrades && K.upgrades[from], it = to && K.findItem(to), line = cart.find((l) => l.id === from);
+    if (!it || !line) return;
+    const q = line.qty; cart = cart.filter((l) => l !== line);
+    const ex = cart.find((l) => l.id === to);
+    if (ex) ex.qty += q; else cart.push({ id: to, name: it.name, price: it.price, qty: q, inStoreOnly: false });
+    saveCart(); toast(`¡Listo! Ahora es ${it.name} 🥤`);
+  }
   function saveCart() { store.set("ck-cart", cart); renderCartUI(); }
-  function linesHTML(dark) {
+  function linesHTML() {
     return cart.map((l) => `<div class="fline"><span>${esc(l.name)}</span>
       <span class="qty"><button type="button" data-q="-1" data-id="${esc(l.id)}" aria-label="Quitar uno de ${esc(l.name)}">−</button><output>${l.qty}</output><button type="button" data-q="1" data-id="${esc(l.id)}" aria-label="Agregar otro ${esc(l.name)}">+</button></span>
       <b>${money(l.price * l.qty)}</b></div>`).join("");
   }
+  function upsellHTML() {
+    if (!cart.length) return "";
+    let html = "";
+    const up = cart.find((l) => K.upgrades && K.upgrades[l.id]);
+    if (up) {
+      const to = K.findItem(K.upgrades[up.id]), diff = to.price - up.price;
+      html += `<button type="button" class="upg" data-upgrade="${esc(up.id)}"><span><b>¿Lo hacemos ${esc(to.name)}?</b><small>Le sumamos un refresco por solo ${money(diff)} más</small></span><em>+${money(diff)}</em></button>`;
+    }
+    const ids = new Set(cart.map((l) => l.id));
+    const hasDrink = cart.some((l) => (K.drinkIds || []).includes(l.id) || /^combo-/.test(l.id));
+    const extras = (K.cartExtras || []).filter((id) => !ids.has(id) && !(hasDrink && (K.drinkIds || []).includes(id)))
+      .map((id) => K.findItem(id)).filter(Boolean).slice(0, 3);
+    if (extras.length) html += `<p class="upsell__t">¿Le sumas algo?</p><div class="upsell__row">${extras.map((x) =>
+      `<button type="button" class="uchip" data-add="${esc(x.id)}"><span>${esc(x.name.replace(" · mediano", ""))}</span><em>+${money(x.price)}</em></button>`).join("")}</div>`;
+    return html;
+  }
   function renderCartUI() {
     const n = cartCount(), tot = cartTotal();
     $("#cartCount").textContent = n;
-    $("#mbarCount").textContent = n; $("#mbarTotal").textContent = money(tot);
-    $("#mbarCart").hidden = n === 0;
+    $("#mbarTxt").innerHTML = n ? `<b class="mbar__n">${n}</b> Ver mi pedido · ${esc(money(tot))} →` : "Elige tu combo →";
+    $("#mbarCta").classList.toggle("has-items", n > 0);
     $("#drawerTotal").textContent = money(tot);
-    $("#drawerBody").innerHTML = n ? linesHTML() : `<div class="drawer__empty"><img src="assets/img/logo.png" alt="" width="110" height="110"><p>Tu bandeja está vacía… ¡y eso no puede ser! 🍗</p><a class="btn btn--red" href="#combos" data-close-drawer>Ver combos</a></div>`;
-    $("#drawerGo").disabled = n === 0;
+    $("#drawerBody").innerHTML = n ? linesHTML() : `<div class="drawer__empty"><img src="assets/img/logo.png" alt="" width="110" height="110"><p>Tu bandeja está vacía… ¡y eso no puede ser! 🍗</p><a class="btn btn--red" href="#combos" data-close-drawer>Ver lo más pedido</a></div>`;
+    $("#upsell").innerHTML = upsellHTML();
+    $("#dco").hidden = n === 0;
+    $("#drawerGo").hidden = n === 0;
+    $(".drawer__total").hidden = n === 0;
+    if (n) syncDrawerForm();
     renderFunnelCart();
     updatePreview();
+    if (typeof updateMbar === "function") updateMbar();
   }
   document.addEventListener("click", (e) => {
     const q = e.target.closest("[data-q]");
     if (q) { setQty(q.dataset.id, +q.dataset.q); return; }
+    const u = e.target.closest("[data-upgrade]");
+    if (u) { upgradeLine(u.dataset.upgrade); return; }
     const a = e.target.closest("[data-add]");
     if (a) { addToCart(a.dataset.add); }
   });
@@ -91,24 +128,42 @@
   let drawerTrigger = null;
   function openDrawer(trigger) {
     drawerTrigger = trigger || document.activeElement;
-    $("#scrim").hidden = false; $("#drawer").hidden = false;
+    $("#scrim").hidden = false; $("#drawer").hidden = false; $("#nudge").hidden = true;
+    document.body.classList.add("drawer-open");
+    $("#dmsg").textContent = ""; $("#dPlaced").hidden = true;
+    renderCartUI();
     $("#drawerClose").focus(); updateMbar();
   }
   function closeDrawer() {
-    $("#scrim").hidden = true; $("#drawer").hidden = true; updateMbar();
-    if (drawerTrigger && drawerTrigger.focus) drawerTrigger.focus();
+    $("#scrim").hidden = true; $("#drawer").hidden = true; document.body.classList.remove("drawer-open"); updateMbar();
+    if (drawerTrigger && drawerTrigger.focus && document.body.contains(drawerTrigger)) drawerTrigger.focus({ preventScroll: true });
   }
   $("#cartBtn").addEventListener("click", (e) => openDrawer(e.currentTarget));
-  $("#mbarCart").addEventListener("click", (e) => openDrawer(e.currentTarget));
+  $("#mbarCta").addEventListener("click", (e) => {
+    if (cartCount()) openDrawer(e.currentTarget);
+    else $("#combos").scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
+  });
   $("#drawerClose").addEventListener("click", closeDrawer);
   $("#scrim").addEventListener("click", closeDrawer);
   $("#drawer").addEventListener("click", (e) => { if (e.target.closest("[data-close-drawer]")) closeDrawer(); });
-  $("#drawerGo").addEventListener("click", () => {
-    closeDrawer();
-    setIntent(cart.some((l) => l.inStoreOnly) ? "pickup" : "delivery");
-    goStep(2);
-    $("#pedir").scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
-  });
+
+  /* cart reminder: nudge someone who leaves a full cart sitting (once per session) */
+  let nudgeT = null;
+  function armNudge() {
+    clearTimeout(nudgeT);
+    if (!cartCount() || store.get("ck-nudged", false, sessionStorage)) return;
+    nudgeT = setTimeout(showNudge, 45000);
+  }
+  function showNudge() {
+    if (!cartCount() || !$("#drawer").hidden || !$("#chat").hidden || store.get("ck-nudged", false, sessionStorage)) return;
+    const first = cart[0];
+    $("#nudgeTxt").textContent = `${cart.length === 1 ? `Tu ${first.name}` : "Tu pedido"} te espera 🍗 · ${money(cartTotal())}`;
+    $("#nudge").hidden = false; store.set("ck-nudged", true, sessionStorage);
+  }
+  ["scroll", "click", "keydown", "touchstart"].forEach((ev) => window.addEventListener(ev, armNudge, { passive: true }));
+  document.addEventListener("mouseleave", (e) => { if (e.clientY <= 0 && finePointer) showNudge(); });
+  $("#nudgeGo").addEventListener("click", (e) => { $("#nudge").hidden = true; openDrawer(e.currentTarget); });
+  $("#nudgeX").addEventListener("click", () => { $("#nudge").hidden = true; });
 
   /* ---------------- header ---------------- */
   const hdr = $("#hdr");
@@ -157,7 +212,16 @@
 
   /* ---------------- hero carousel ---------------- */
   const today0 = nowLP().date;
-  const slides = $$(".slide").filter((s) => !s.dataset.until || today0 <= s.dataset.until);
+  (function leadWithToday() {
+    const t = nowLP(), y = $(".slide--red");
+    if (!y || t.day !== 3 || (y.dataset.until && t.date > y.dataset.until)) return;
+    const first = $(".slide.is-on"); if (first) first.classList.remove("is-on");
+    y.classList.add("is-on"); $("#slides").prepend(y);
+    const k = y.querySelector(".kicker"); if (k) k.textContent = "🔥 Hoy miércoles · solo en sucursal";
+  })();
+  // the Wednesday (in-store) slide only shows Monday to Wednesday; the rest of the week leads with things you can order now
+  const wk = nowLP().day;
+  const slides = $$(".slide").filter((s) => (!s.dataset.until || today0 <= s.dataset.until) && (!s.classList.contains("slide--red") || (wk >= 1 && wk <= 3)));
   $$(".slide").forEach((s) => { if (!slides.includes(s)) s.hidden = true; });
   slides.forEach((s, i) => s.setAttribute("aria-label", s.getAttribute("aria-label").replace(/^\d+ de \d+/, `${i + 1} de ${slides.length}`)));
   let cur = 0, autoT = null, paused = false, heroVisible = true;
@@ -178,7 +242,7 @@
     hdr.classList.toggle("on-light", light && window.scrollY <= tickH());
     syncSlideVideo();
   }
-  function schedule() { clearInterval(autoT); if (!reduced && !paused && slides.length > 1) autoT = setInterval(() => { if (!document.hidden) show(cur + 1); }, 6500); }
+  function schedule() { clearInterval(autoT); if (!reduced && !paused && slides.length > 1) autoT = setInterval(() => { if (!document.hidden) show(cur + 1); }, 8000); }
   dots.forEach((d, k) => d.addEventListener("click", () => { show(k); schedule(); }));
   $("#dots").addEventListener("keydown", (e) => {
     if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
@@ -188,7 +252,7 @@
   ["mouseenter", "focusin"].forEach((ev) => slidesEl.addEventListener(ev, () => { paused = true; clearInterval(autoT); }));
   ["mouseleave", "focusout"].forEach((ev) => slidesEl.addEventListener(ev, () => { paused = false; schedule(); }));
   let sx = null;
-  slidesEl.addEventListener("touchstart", (e) => { sx = e.touches[0].clientX; }, { passive: true });
+  slidesEl.addEventListener("touchstart", (e) => { sx = e.touches[0].clientX; paused = true; clearInterval(autoT); }, { passive: true });
   slidesEl.addEventListener("touchend", (e) => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50) { show(cur + (dx < 0 ? 1 : -1)); schedule(); } sx = null; });
   new IntersectionObserver((ents) => { heroVisible = ents[0].isIntersecting; syncSlideVideo(); }, { threshold: 0.2 }).observe(hero);
   window.addEventListener("scroll", () => hdr.classList.toggle("on-light", slides[cur].dataset.tone === "light" && window.scrollY <= tickH()), { passive: true });
@@ -210,31 +274,17 @@
     const svc = $('#orderbox input[name="obService"]:checked').value;
     const b = $("#obBranch").value;
     setIntent(svc);
-    if (b) { F.branch = b; saveF(); renderBranchSelect(); }
-    goStep(2, true);
-    $("#pedir").scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
+    if (b) { F.branch = b; saveF(); saveMe(); renderBranchSelect(); }
+    if (cartCount()) { openDrawer(); return; }
+    $("#combos").scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
+    toast(svc === "pickup" ? "¡Perfecto! Elige tus platos y pasas a recoger 👇" : "¡Perfecto! Elige tus platos 👇");
   });
-
-  /* ---------------- offers row ---------------- */
-  function renderOffers() {
-    const rail = $("#offersRail");
-    rail.innerHTML = (K.offers || []).map((o) => {
-      const ext = /^https?:/.test(o.href);
-      return `<a class="ocard${o.w > o.h ? " ocard--card" : ""}" href="${esc(o.href)}"${ext ? ' target="_blank" rel="noopener"' : ""}><img src="${esc(o.img)}" alt="${esc(o.alt)}" width="${o.w}" height="${o.h}" loading="lazy"></a>`;
-    }).join("");
-    const prev = $("#offPrev"), next = $("#offNext");
-    const upd = () => { prev.hidden = rail.scrollLeft < 10; next.hidden = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 10; };
-    const stepW = () => (rail.querySelector(".ocard")?.getBoundingClientRect().width || 300) + 18;
-    prev.addEventListener("click", () => rail.scrollBy({ left: -stepW(), behavior: reduced ? "auto" : "smooth" }));
-    next.addEventListener("click", () => rail.scrollBy({ left: stepW(), behavior: reduced ? "auto" : "smooth" }));
-    rail.addEventListener("scroll", upd, { passive: true }); window.addEventListener("resize", upd); upd();
-  }
 
   /* ---------------- footer dropdowns ---------------- */
   const groups = $$("#footGroups details");
   groups.forEach((d) => d.addEventListener("toggle", () => { if (d.open && window.innerWidth > 860) groups.forEach((o) => { if (o !== d) o.open = false; }); }));
   document.addEventListener("click", (e) => { if (window.innerWidth > 860 && !e.target.closest("#footGroups")) groups.forEach((d) => (d.open = false)); });
-  document.addEventListener("click", (e) => { const c = e.target.closest("[data-city-go]"); if (c) { city = c.dataset.cityGo; renderBranches(); } });
+  document.addEventListener("click", (e) => { const c = e.target.closest("[data-city-go]"); if (c) { city = c.dataset.cityGo; allBranches = false; renderBranches(); } });
 
   /* ---------------- weekly + spotlight ---------------- */
   function renderWeekly() {
@@ -260,35 +310,28 @@
     }).join("");
     $("#promoRules").textContent = cards.some((w) => w.inStoreOnly) ? K.promoRules : "";
   }
-  function renderSpot() {
-    const t = nowLP(), y = K.yapa, sec = $("#spot");
-    if (!y || (y.until && t.date > y.until)) { sec.hidden = true; return; }
-    const opts = y.options.map((id) => K.findItem(id)).filter(Boolean);
-    sec.innerHTML = `<div class="wrap spot__in">
-      <a class="spot__img reveal" href="${esc(y.url)}" target="_blank" rel="noopener"><img src="${esc(y.img)}" alt="Post de Chicken's Kingdom: este miércoles, ¿pollo o pipocas? Combo Yape a 20 Bs" width="900" height="1125" loading="lazy"></a>
-      <div class="reveal" style="--d:100ms">
-        <p class="eyebrow">${esc(y.eyebrow)}</p>
-        <h2 id="spotTitle">${esc(y.title)}</h2>
-        <p class="spot__lede">${esc(y.lede)}</p>
-        <p class="spot__price"><small>${CUR}</small>${num(y.price)}</p>
-        <div class="spot__btns">${opts.map((o, i) => `<button class="btn ${i ? "btn--ghost" : "btn--mustard"} btn--lg" type="button" data-add="${esc(o.id)}">+ ${esc(o.name.replace("Combo Yape · ", "Yape "))}</button>`).join("")}</div>
-        <p class="spot__note">${esc(K.promoRules)}</p>
-      </div></div>`;
+  /* proof strip: only facts with a source in data.js */
+  function renderProof() {
+    const t = nowLP(), open = K.branches.filter((b) => branchStatus(b, t).open).length;
+    const items = K.stats.map((x) => `<li><b>${x.decimals ? String(x.value).replace(".", ",") : x.value}${esc(x.suffix)}</b><span>${esc(x.label)}</span></li>`);
+    items.push(open ? `<li class="proof__live"><b><i></i>${open} abiertas</b><span>ahora mismo, hasta las 23:30</span></li>`
+      : `<li class="proof__live is-closed"><b>10:00</b><span>abrimos todos los días, hasta las 23:30</span></li>`);
+    $("#proof").innerHTML = `<div class="wrap"><ul class="proof__list">${items.join("")}</ul></div>`;
   }
 
   /* ---------------- menu ---------------- */
-  $("#coins").innerHTML = K.sizes.map((s) => `<li><b>${s.value}</b><span>${esc(s.unit)}<br>${esc(s.label)}</span></li>`).join("");
   let menuTab = K.menu[0].id;
   function renderTabs(host, current, cls, onPick) {
     host.innerHTML = K.menu.map((c) => `<button class="tab" role="tab" type="button" aria-selected="${c.id === current}" data-tab="${esc(c.id)}">${esc(c.name)} <small>${esc(c.size)}</small></button>`).join("");
     host.onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) onPick(b.dataset.tab); };
   }
   function menuItemHTML(it) {
-    const badges = (it.hot ? '<span class="badge">Favorito</span>' : "") + (it.price == null ? '<span class="badge badge--yellow">Postre</span>' : "");
+    const badges = (it.hot ? '<span class="badge">🔥 Favorito</span>' : "") + (it.price == null ? '<span class="badge badge--yellow">Postre</span>' : "");
     const right = it.price == null
       ? `<span class="mitem__price mitem__price--ask">Consulta en sucursal</span>`
       : `<span class="mitem__price">${money(it.price)}</span><button class="add" type="button" data-add="${esc(it.id)}" aria-label="Agregar ${esc(it.name)}">+</button>`;
-    return `<div class="mitem"><div class="mitem__main"><h3>${esc(it.name)} ${badges}</h3><p>${esc(it.desc)}</p></div>${right}</div>`;
+    const pic = it.img ? `<img class="mitem__img" src="${esc(it.img)}" alt="" width="96" height="96" loading="lazy">` : "";
+    return `<div class="mitem${pic ? " mitem--pic" : ""}">${pic}<div class="mitem__main"><h3>${esc(it.name)} ${badges}</h3><p>${esc(it.desc)}</p></div>${right}</div>`;
   }
   let menuExpanded = false;
   function renderMenu() {
@@ -349,12 +392,16 @@
   }
 
   /* ---------------- branches ---------------- */
-  let city = "Todas";
+  let city = "Todas", allBranches = false;
   function renderBranches() {
     const t = nowLP();
     const cities = ["Todas", ...new Set(K.branches.map((b) => b.city))];
     $("#cityTabs").innerHTML = cities.map((c) => `<button class="tab" type="button" role="tab" aria-selected="${c === city}" data-city="${esc(c)}">${esc(c)} <small>${c === "Todas" ? K.branches.length : K.branches.filter((b) => b.city === c).length}</small></button>`).join("");
-    const list = K.branches.filter((b) => city === "Todas" || b.city === city);
+    const full = K.branches.filter((b) => city === "Todas" || b.city === city)
+      .map((b, i) => ({ b, i, o: branchStatus(b, t).open })).sort((x, y) => (y.o - x.o) || (x.i - y.i)).map((x) => x.b);
+    const list = allBranches ? full : full.slice(0, 4);
+    const more = $("#branchesMore");
+    more.hidden = full.length <= 4; more.textContent = allBranches ? "Ver menos ↑" : `Ver las ${full.length} sucursales ↓`;
     $("#branches").innerHTML = list.map((b) => {
       const s = branchStatus(b, t);
       const maps = b.maps || `https://www.google.com/maps/search/${encodeURIComponent(`Chicken's Kingdom ${b.address} ${b.city}`)}`;
@@ -365,10 +412,11 @@
         <div class="bcard__links"><a href="${esc(maps)}" target="_blank" rel="noopener">Cómo llegar ↗</a><a href="https://wa.me/${esc(b.whatsapp)}" target="_blank" rel="noopener">WhatsApp ${esc(fmtPhone(b.whatsapp))}</a></div></div></article>`;
     }).join("");
   }
-  $("#cityTabs").addEventListener("click", (e) => { const b = e.target.closest("[data-city]"); if (b) { city = b.dataset.city; renderBranches(); } });
+  $("#cityTabs").addEventListener("click", (e) => { const b = e.target.closest("[data-city]"); if (b) { city = b.dataset.city; allBranches = false; renderBranches(); } });
+  $("#branchesMore").addEventListener("click", () => { allBranches = !allBranches; renderBranches(); if (!allBranches) $("#sucursales").scrollIntoView(); });
   function fmtPhone(d) { return d.startsWith("591") ? `+591 ${d.slice(3)}` : d; }
   $("#delivery").innerHTML = `<div><h3>${esc(K.delivery.title)}</h3><p>${esc(K.delivery.text)}</p></div>
-    <div class="delivery__btns"><a class="btn btn--red" href="#pedir" data-intent="delivery">Armar mi pedido</a>
+    <div class="delivery__btns"><a class="btn btn--red" href="#combos">Armar mi pedido</a>
     <a class="btn btn--cream" href="${esc(K.config.orderWeb)}" target="_blank" rel="noopener">Pedidos web ↗</a>
     <a class="btn btn--cream" href="${esc(K.config.appAndroid)}" target="_blank" rel="noopener">App Android</a>
     <a class="btn btn--cream" href="${esc(K.config.appApple)}" target="_blank" rel="noopener">App iPhone</a></div>`;
@@ -403,6 +451,10 @@
   F.intent = F.intent || ""; F.when = F.when || "asap"; F.occasion = F.occasion || ""; F.topic = F.topic || "";
   let step = 1, pickTab = K.menu[0].id;
   const saveF = () => store.set("ck-funnel", F, sessionStorage);
+  const ME_KEYS = ["name", "phone", "addr", "ref", "branch"];
+  const me = store.get("ck-me", {});
+  ME_KEYS.forEach((k) => { if (!F[k] && me[k]) F[k] = me[k]; });
+  function saveMe() { store.set("ck-me", Object.fromEntries(ME_KEYS.map((k) => [k, F[k] || ""]))); }
 
   $("#intents").innerHTML = INTENTS.map((i) => `<label class="intent"><input type="radio" name="intent" value="${i.id}"${F.intent === i.id ? " checked" : ""}><span><i>${i.n}</i><b>${esc(i.t)}</b><small>${esc(i.d)}</small></span></label>`).join("");
   $("#intents").addEventListener("change", (e) => { setIntent(e.target.value); });
@@ -414,6 +466,7 @@
     $('[data-for="event"]').hidden = v !== "event";
     $('[data-for="question"]').hidden = v !== "question";
     $("[data-for-delivery]").hidden = v !== "delivery";
+    if ($("#dAddrWrap")) $("#dAddrWrap").hidden = v !== "delivery";
     updatePreview();
   }
   function chipGroup(host, items, key) {
@@ -447,10 +500,55 @@
       K.branches.filter((b) => b.city === c).map((b) => `<option value="${esc(b.id)}"${cur === b.id ? " selected" : ""}>${esc(b.name)} · ${esc(branchStatus(b, t).label)}</option>`).join("") + `</optgroup>`).join("")
       + `<option value="cc"${cur === "cc" ? " selected" : ""}>Call Center · consultas generales</option>`;
   }
-  const bind = (sel, key) => { const el = $(sel); if (F[key]) el.value = F[key]; el.addEventListener("input", () => { F[key] = el.value; saveF(); updatePreview(); }); };
+  const FUNNEL_FIELDS = [["#fBranch", "branch"], ["#fName", "name"], ["#fPhone", "phone"], ["#fAddr", "addr"], ["#fRef", "ref"], ["#fNote", "note"]];
+  function syncFunnelFields() { FUNNEL_FIELDS.forEach(([sel, k]) => { const el = $(sel); if (el && document.activeElement !== el) el.value = F[k] || ""; }); }
+  const bind = (sel, key) => { const el = $(sel); if (F[key]) el.value = F[key]; el.addEventListener("input", () => { F[key] = el.value; saveF(); if (ME_KEYS.includes(key)) saveMe(); updatePreview(); }); };
   renderBranchSelect();
   [["#fBranch", "branch"], ["#fName", "name"], ["#fPhone", "phone"], ["#fAddr", "addr"], ["#fRef", "ref"], ["#fNote", "note"], ["#whenTime", "whenTime"], ["#evDate", "evDate"], ["#evTime", "evTime"], ["#evPeople", "evPeople"], ["#evNote", "evNote"], ["#qText", "qText"]].forEach(([s, k]) => bind(s, k));
   $("#fBranch").addEventListener("change", () => { F.branch = $("#fBranch").value; saveF(); updatePreview(); });
+
+  /* ---- one-screen checkout inside the cart drawer ---- */
+  const DFIELDS = [["#dName", "name"], ["#dPhone", "phone"], ["#dAddr", "addr"], ["#dRef", "ref"], ["#dNote", "note"]];
+  function renderDrawerBranches() {
+    const t = nowLP(), sel = $("#dBranch");
+    sel.innerHTML = `<option value="">Elige tu sucursal</option>` + ["Cochabamba", "Santa Cruz"].map((c) => `<optgroup label="${c}">` +
+      K.branches.filter((b) => b.city === c).map((b) => `<option value="${esc(b.id)}">${esc(b.name)} · ${esc(branchStatus(b, t).label)}</option>`).join("") + `</optgroup>`).join("");
+    sel.value = F.branch && F.branch !== "cc" ? F.branch : "";
+  }
+  function syncDrawerForm() {
+    const yapeOnly = cart.some((l) => l.inStoreOnly);
+    if (F.intent !== "delivery" && F.intent !== "pickup") F.intent = yapeOnly ? "pickup" : "delivery";
+    if (yapeOnly && F.intent === "delivery") F.intent = "pickup";
+    saveF();
+    $$('#dco input[name="dService"]').forEach((r) => { r.checked = r.value === F.intent; r.disabled = yapeOnly && r.value === "delivery"; });
+    const note = $("#dcoNote");
+    note.hidden = !yapeOnly; note.textContent = yapeOnly ? "El Combo Yape es solo en sucursal, pagando con Yape: tu pedido queda para recoger." : "";
+    $("#dAddrWrap").hidden = F.intent !== "delivery";
+    if (!$("#dBranch").options.length) renderDrawerBranches();
+    if (document.activeElement !== $("#dBranch")) $("#dBranch").value = F.branch && F.branch !== "cc" ? F.branch : "";
+    DFIELDS.forEach(([sel, k]) => { const el = $(sel); if (document.activeElement !== el) el.value = F[k] || ""; });
+    $("#drawerGoTxt").textContent = "Pedir por WhatsApp";
+  }
+  $("#dco").addEventListener("change", (e) => {
+    if (e.target.name === "dService") { setIntent(e.target.value); syncDrawerForm(); }
+    if (e.target.id === "dBranch") { F.branch = e.target.value; saveF(); saveMe(); syncFunnelFields(); updatePreview(); }
+  });
+  DFIELDS.forEach(([sel, k]) => $(sel).addEventListener("input", (e) => { F[k] = e.target.value; saveF(); if (ME_KEYS.includes(k)) saveMe(); syncFunnelFields(); updatePreview(); $("#dmsg").textContent = ""; }));
+  $("#dco").addEventListener("submit", (e) => e.preventDefault());
+  const FOCUS_FOR = { "¿Cómo te llamas? 🙂": "#dName", "Elige tu sucursal 📍": "#dBranch", "Necesitamos tu dirección para el delivery 🏠": "#dAddr" };
+  $("#drawerGo").addEventListener("click", (e) => {
+    if (F.intent !== "delivery" && F.intent !== "pickup") setIntent("delivery");
+    F.when = "⚡ Lo antes posible"; saveF();
+    submitOrder(e, {
+      msg: (t) => { $("#dmsg").textContent = t; },
+      invalid: (bad) => {
+        $("#dmsg").textContent = bad.msg;
+        const f = FOCUS_FOR[bad.msg] || (/WhatsApp/.test(bad.msg) ? "#dPhone" : null);
+        if (f) $(f).focus();
+      },
+      placed: (html) => { const el = $("#dPlaced"); el.hidden = false; el.innerHTML = html; },
+    });
+  });
 
   function recipient() {
     const b = K.branches.find((x) => x.id === F.branch);
@@ -579,16 +677,22 @@
   }
   const trackUrl = (token) => `${(CFG.siteUrl || location.origin).replace(/\/$/, "")}${CFG.trackPath || "/sigue-tu-pedido/"}?t=${encodeURIComponent(token)}`;
   let sending = false;
-  $("#sendWa").addEventListener("click", async (e) => {
+  async function submitOrder(e, ui) {
     const bad = validate(3);
-    if (bad) { e.preventDefault(); goStep(bad.step); return; }
+    if (bad) { e.preventDefault(); ui.invalid(bad); return; }
     const isOrder = F.intent === "delivery" || F.intent === "pickup";
-    if (!isOrder || !backendOn) return; // plain wa.me link
+    saveMe();
+    const r = recipient();
+    if (!isOrder || !backendOn) {
+      if (e.currentTarget.tagName !== "A") { e.preventDefault(); const wa = `https://wa.me/${r.num}?text=${encodeURIComponent(buildMessage())}`; if (!window.open(wa, "_blank")) location.href = wa; }
+      if (isOrder) saveMiPedido({ code: `local-${Date.now().toString(36)}`, at: Date.now(), branch: F.branch, service: F.intent, cart: Object.fromEntries(cart.map((l) => [l.id, l.qty])) });
+      ui.msg(isOrder ? "¡Listo! Envía el mensaje en WhatsApp para confirmar tu pedido 🍗" : "");
+      return;
+    }
     e.preventDefault();
     if (sending) return; sending = true;
     const win = window.open("about:blank", "_blank");
-    const r = recipient();
-    $("#fmsg").textContent = "Registrando tu pedido… 🍗";
+    ui.msg("Registrando tu pedido… 🍗");
     const out = await placeOrderRPC({
       client_ref: clientRef(), channel: "web", store: F.branch, service: F.intent,
       customer_name: (F.name || "").trim(), customer_phone: normPhone(F.phone),
@@ -599,7 +703,7 @@
     sending = false;
     if (out.error) {
       if (win) win.close();
-      $("#fmsg").textContent = errorText(out.error);
+      ui.msg(errorText(out.error));
       return;
     }
     let msg;
@@ -607,18 +711,22 @@
       const d = out.data, url = trackUrl(d.tracking_token);
       msg = buildMessage([`Pedido *${d.code}*`, `Sigue tu pedido: ${url}`]);
       saveMiPedido({ code: d.code, at: Date.now(), branch: F.branch, service: F.intent, cart: Object.fromEntries(cart.map((l) => [l.id, l.qty])), track: d.tracking_token });
-      $("#placed").hidden = false;
-      $("#placed").innerHTML = `<p class="placed__ok">✅ Pedido <b>${esc(d.code)}</b> registrado · Total ${money(+d.total)}</p>
-        <a class="btn btn--mustard btn--block" href="${esc(url)}">📍 Sigue tu pedido</a>`;
-      $("#fmsg").textContent = "";
+      ui.placed(`<p class="placed__ok">✅ Pedido <b>${esc(d.code)}</b> registrado · Total ${money(+d.total)}</p>
+        <a class="btn btn--mustard btn--block" href="${esc(url)}">📍 Sigue tu pedido</a>`);
+      ui.msg("");
     } else {
       msg = buildMessage();
       saveMiPedido({ code: `local-${Date.now().toString(36)}`, at: Date.now(), branch: F.branch, service: F.intent, cart: Object.fromEntries(cart.map((l) => [l.id, l.qty])) });
-      $("#fmsg").textContent = "Abrimos WhatsApp para enviar tu pedido 🍗";
+      ui.msg("Abrimos WhatsApp para enviar tu pedido 🍗");
     }
     const wa = `https://wa.me/${r.num}?text=${encodeURIComponent(msg)}`;
     if (win) win.location.href = wa; else location.href = wa;
-  });
+  }
+  $("#sendWa").addEventListener("click", (e) => submitOrder(e, {
+    msg: (t) => { $("#fmsg").textContent = t; },
+    invalid: (bad) => goStep(bad.step),
+    placed: (html) => { $("#placed").hidden = false; $("#placed").innerHTML = html; },
+  }));
   document.addEventListener("click", (e) => { const a = e.target.closest("[data-intent]"); if (a) { setIntent(a.dataset.intent); goStep(cartCount() ? 2 : 1); } });
 
   /* ---------------- AI ordering assistant (Pollit-IA) ---------------- */
@@ -844,7 +952,8 @@
   /* ---------------- mobile bar visibility ---------------- */
   const hideZones = new Set();
   function updateMbar() {
-    $("#mbar").classList.toggle("is-hidden", hideZones.size > 0 || !chat.hidden || !$("#drawer").hidden);
+    const zones = [...hideZones].filter((z) => !(z === "top" && cartCount()));
+    $("#mbar").classList.toggle("is-hidden", zones.length > 0 || !chat.hidden || !$("#drawer").hidden);
     $(".ai-fab").classList.toggle("is-hidden", hideZones.has("foot") || !chat.hidden);
   }
   const zoneIO = new IntersectionObserver((ents) => ents.forEach((en) => { en.isIntersecting ? hideZones.add(en.target.id) : hideZones.delete(en.target.id); updateMbar(); }), { rootMargin: "-45% 0px -45% 0px", threshold: 0 });
@@ -868,8 +977,8 @@
   }
 
   /* ---------------- boot ---------------- */
-  renderTicker(); renderObBranches(); renderLive(); renderWeekly(); renderSpot(); renderOffers(); renderMenu(); renderAddons(); renderCombos(); renderReels(); renderBranches();
-  renderPicker(); renderCartUI(); setIntent(F.intent); goStep(1);
+  renderTicker(); renderObBranches(); renderLive(); renderProof(); renderWeekly(); renderMenu(); renderAddons(); renderCombos(); renderReels(); renderBranches();
+  renderPicker(); renderDrawerBranches(); renderCartUI(); setIntent(F.intent); goStep(1); if (F.branch) $("#obBranch").value = F.branch;
   wireVideos(); wireReveal(); updateMbar();
-  setInterval(() => { renderLive(); renderBranches(); renderObBranches(); if (step === 3) renderBranchSelect(); }, 60000);
+  setInterval(() => { renderLive(); renderProof(); renderBranches(); renderObBranches(); if (step === 3) renderBranchSelect(); }, 60000);
 })();

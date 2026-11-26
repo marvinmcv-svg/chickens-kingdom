@@ -172,6 +172,12 @@
       { id: "combo-pipocas", parts: [["pipocas-de-pollo"], ["jugo-mango-m", "jugo-maracuya-m", "jugo-frutilla-m"]] },
       { id: "medio-pollo" },
     ],
+    // Cart upsell: "make it a combo". Each combo is the same plate + 1 vaso de refresco, for Bs 6 more [MENU]
+    // (Cuarto Pollo 37 → Combo Queen 43, Pipocas de Pollo 37 → Combo Pipocas 43, Medio Pollo 64 → Combo King 70).
+    upgrades: { "cuarto-pollo": "combo-queen", "pipocas-de-pollo": "combo-pipocas", "medio-pollo": "combo-king" },
+    // Quick add-ons offered in the cart, in order of preference.
+    cartExtras: ["papas-fritas", "jugo-mango-m", "salsa-kingdom", "arroz-frijol"],
+
     drinkIds: ["jugo-mango-m", "jugo-mango-g", "jugo-maracuya-m", "jugo-maracuya-g", "jugo-frutilla-m", "jugo-frutilla-g"],
 
     // "Descubre nuestras promos" row: the current promo post + the official menu cards (current prices)
